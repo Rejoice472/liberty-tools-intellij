@@ -21,6 +21,7 @@ import java.util.stream.Stream;
 
 import com.intellij.psi.*;
 import com.intellij.psi.search.GlobalSearchScope;
+import io.openliberty.tools.intellij.lsp4jakarta.lsp4ij.pojo.JakartaDiagnosticsSettings;
 import io.openliberty.tools.intellij.lsp4mp4ij.psi.core.java.diagnostics.IJavaDiagnosticsParticipant;
 import io.openliberty.tools.intellij.lsp4mp4ij.psi.core.java.diagnostics.JavaDiagnosticsContext;
 import org.eclipse.lsp4j.Diagnostic;
@@ -98,6 +99,10 @@ public abstract class AbstractDiagnosticsCollector implements DiagnosticsCollect
      */
     @Override
     public final List<Diagnostic> collectDiagnostics(JavaDiagnosticsContext context) {
+        int version = ((JakartaDiagnosticsSettings)context.getSettings()).getJakartaVersion();
+        System.out.println("version-start");
+        System.out.println(version);
+        System.out.println("version-end");
         PsiFile typeRoot = context.getTypeRoot();
         if (typeRoot instanceof PsiJavaFile) {
             List<Diagnostic> diagnostics = new ArrayList<>();

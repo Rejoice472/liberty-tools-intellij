@@ -14,10 +14,16 @@
 package io.openliberty.tools.intellij.lsp4jakarta.lsp4ij;
 
 import com.intellij.openapi.module.Module;
+import com.intellij.openapi.roots.OrderEnumerator;
+import com.intellij.openapi.vfs.VirtualFile;
 import io.openliberty.tools.intellij.lsp4mp4ij.psi.core.IProjectLabelProvider;
 import io.openliberty.tools.intellij.lsp4mp4ij.psi.core.jaxrs.JaxRsConstants;
+import io.openliberty.tools.intellij.lsp4mp4ij.psi.core.utils.IPsiUtils;
 import io.openliberty.tools.intellij.lsp4mp4ij.psi.internal.core.ls.PsiUtilsLSImpl;
+import org.eclipse.lsp4mp.commons.ProjectLabelInfoEntry;
 
+import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -36,6 +42,7 @@ public class JakartaProjectLabelProvider implements IProjectLabelProvider {
     /** Jakarta project label. */
     public static final String JAKARTA_LABEL = "jakarta";
 
+
     @Override
     public List<String> getProjectLabels(Module project) {
         if (isJakartaProject(project)) {
@@ -53,5 +60,16 @@ public class JakartaProjectLabelProvider implements IProjectLabelProvider {
      */
     public static boolean isJakartaProject(Module javaProject) {
         return PsiUtilsLSImpl.getInstance(javaProject.getProject()).findClass(javaProject, JaxRsConstants.JAKARTA_WS_RS_GET_ANNOTATION) != null;
+    }
+
+    public static List<String> getClassPath(String uri, IPsiUtils utils) {
+        List<String> classPath;
+        try {
+            Module module = utils.getModule(utils.findFile(uri));
+            classPath = OrderEnumerator.orderEntries(module).recursively().classes().getPathsList().getPathList();
+        } catch (Exception e) {
+            return new ArrayList<>();
+        }
+        return classPath;
     }
 }

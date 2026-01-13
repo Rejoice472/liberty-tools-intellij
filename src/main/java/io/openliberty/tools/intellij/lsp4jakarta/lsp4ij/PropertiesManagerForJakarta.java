@@ -14,6 +14,7 @@ package io.openliberty.tools.intellij.lsp4jakarta.lsp4ij;
 
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.util.Computable;
+import io.openliberty.tools.intellij.lsp4jakarta.lsp4ij.pojo.JakartaDiagnosticsSettings;
 import io.openliberty.tools.intellij.lsp4mp4ij.psi.core.java.completion.CompletionHandler;
 import io.openliberty.tools.intellij.lsp4mp4ij.psi.core.java.diagnostics.DiagnosticsHandler;
 import io.openliberty.tools.intellij.lsp4mp4ij.psi.core.utils.IPsiUtils;
@@ -142,7 +143,8 @@ public final class PropertiesManagerForJakarta {
     private MicroProfileJavaDiagnosticsParams adapt(JakartaJavaDiagnosticsParams params) {
         JakartaJavaDiagnosticsSettings settings = params.getSettings();
         MicroProfileJavaDiagnosticsParams mpParams = new MicroProfileJavaDiagnosticsParams(params.getUris(),
-                new MicroProfileJavaDiagnosticsSettings(settings != null ? settings.getPatterns() : Collections.emptyList()));
+                new JakartaDiagnosticsSettings(settings != null ? settings.getPatterns() : Collections.emptyList(),
+                        params.getJakartaVersion()));
         DocumentFormat df = params.getDocumentFormat();
         mpParams.setDocumentFormat(df != null ? org.eclipse.lsp4mp.commons.DocumentFormat.forValue(df.getValue()) : null);
         return mpParams;

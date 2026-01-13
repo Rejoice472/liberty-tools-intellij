@@ -17,6 +17,7 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.roots.libraries.Library;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.redhat.devtools.lsp4ij.JSONUtils;
+import io.openliberty.tools.intellij.lsp4jakarta.lsp4ij.JakartaProjectLabelProvider;
 import io.openliberty.tools.intellij.lsp4jakarta.lsp4ij.PropertiesManagerForJakarta;
 import io.openliberty.tools.intellij.lsp4mp.MicroProfileProjectService;
 import io.openliberty.tools.intellij.lsp4mp4ij.psi.core.ProjectLabelManager;
@@ -99,7 +100,8 @@ public final class JakartaLanguageClient extends IndexAwareLanguageClient implem
     final var coalesceBy = new CoalesceByKey("jakarta/java/projectLabels",
             jakartaJavaProjectLabelsParams.getUri(), jakartaJavaProjectLabelsParams.getTypes());
     return runAsBackground("Computing Java projects labels",
-            monitor -> adapt(ProjectLabelManager.getInstance().getProjectLabelInfo(adapt(jakartaJavaProjectLabelsParams), utils)), coalesceBy);
+            monitor -> adapt(ProjectLabelManager.getInstance().getProjectLabelInfo(
+                    adapt(jakartaJavaProjectLabelsParams), utils), utils, jakartaJavaProjectLabelsParams.getUri()), coalesceBy);
   }
 
   // Support the message "jakarta/java/workspaceLabels"
@@ -108,7 +110,7 @@ public final class JakartaLanguageClient extends IndexAwareLanguageClient implem
     final IPsiUtils utils = PsiUtilsLSImpl.getInstance(getProject());
     final var coalesceBy = new CoalesceByKey("jakarta/java/workspaceLabels");
     return runAsBackground("Computing All Java projects labels",
-            monitor -> adapt(ProjectLabelManager.getInstance().getProjectLabelInfo(utils)), coalesceBy);
+            monitor -> adapt(ProjectLabelManager.getInstance().getProjectLabelInfo(utils), utils), coalesceBy);
   }
 
   // Support the message "jakarta/java/fileInfo"
@@ -134,17 +136,21 @@ public final class JakartaLanguageClient extends IndexAwareLanguageClient implem
   // from LSP4MP and LSPJakarta that are otherwise identical except for their class names. Once
   // LSP4MP and LSP4Jakarta have a common/unified client API, the "adapt" methods can be removed.
 
-  private List<ProjectLabelInfoEntry> adapt(List<org.eclipse.lsp4mp.commons.ProjectLabelInfoEntry> mpEntries) {
+  private List<ProjectLabelInfoEntry> adapt(List<org.eclipse.lsp4mp.commons.ProjectLabelInfoEntry> mpEntries, IPsiUtils utils) {
     if (mpEntries != null) {
       final List<ProjectLabelInfoEntry> jakartaEntries = new ArrayList<>();
-      mpEntries.forEach(x -> jakartaEntries.add(adapt(x)));
+      mpEntries.forEach(x -> jakartaEntries.add(adapt(x, utils, x.getUri())));
       return jakartaEntries;
     }
     return null;
   }
 
-  private ProjectLabelInfoEntry adapt(org.eclipse.lsp4mp.commons.ProjectLabelInfoEntry mpEntry) {
-    return new ProjectLabelInfoEntry(mpEntry.getUri(), mpEntry.getName(), mpEntry.getLabels());
+  private ProjectLabelInfoEntry adapt(org.eclipse.lsp4mp.commons.ProjectLabelInfoEntry mpEntry, IPsiUtils utils, String uri) {
+    List<String> classPath = JakartaProjectLabelProvider.getClassPath(uri, utils);
+    System.out.println("classPath-start");
+    System.out.println(classPath);
+    System.out.println("classPath-end");
+    return new ProjectLabelInfoEntry(mpEntry.getUri(), mpEntry.getName(), mpEntry.getLabels(), classPath);
   }
 
   private MicroProfileJavaProjectLabelsParams adapt(JakartaJavaProjectLabelsParams params) {

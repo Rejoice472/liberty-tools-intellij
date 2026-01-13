@@ -29,10 +29,8 @@ allprojects {
 }
 
 repositories {
+    mavenLocal()
     mavenCentral()
-    maven {
-        url 'https://repo.eclipse.org/content/repositories/snapshots'
-    }
     maven {
         url 'https://repo.eclipse.org/content/repositories/releases'
     }
@@ -63,7 +61,7 @@ repositories {
     intellijPlatform {
         defaultRepositories()
     }
-    mavenLocal() // TODO remove once Liberty LS is publicly available
+
 }
 
 configurations {
