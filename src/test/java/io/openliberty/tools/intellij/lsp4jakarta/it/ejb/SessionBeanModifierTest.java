@@ -175,7 +175,7 @@ public class SessionBeanModifierTest extends BaseJakartaTest {
     /**
      * NestedSessionBeanWrapper.java — line 12 (0-based):
      *   "    public class NestedStatefulBean {"
-     *   → name "NestedStatefulBean" col 17..35 → InvalidNotTopLevelClass
+     *   → name "NestedStatefulBean" col 17..35 → InvalidNonTopLevelClass
      */
     @Test
     public void testNestedSessionBeanNotTopLevel() throws Exception {
@@ -187,7 +187,7 @@ public class SessionBeanModifierTest extends BaseJakartaTest {
 
         Diagnostic notTopLevel = d(12, 17, 35,
                 "A session bean class must be a top-level class.",
-                DiagnosticSeverity.Error, "jakarta-ejb", "InvalidNotTopLevelClass");
+                DiagnosticSeverity.Error, "jakarta-ejb", "InvalidNonTopLevelClass");
 
         assertJavaDiagnostics(diagnosticsParams, utils, notTopLevel);
 

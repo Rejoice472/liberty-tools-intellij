@@ -81,7 +81,7 @@ public class EjbDiagnosticsCollector extends AbstractDiagnosticsCollector {
         if (type.getContainingClass() != null) {
             diagnostics.add(createDiagnostic(type, unit,
                     Messages.getMessage("SessionBeanMustBeTopLevel"),
-                    DIAGNOSTIC_CODE_NOT_TOP_LEVEL_CLASS,
+                    DIAGNOSTIC_CODE_NON_TOP_LEVEL_CLASS,
                     null,
                     DiagnosticSeverity.Error));
         }
