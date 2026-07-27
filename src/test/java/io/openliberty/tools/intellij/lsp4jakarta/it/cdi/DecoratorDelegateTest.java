@@ -637,4 +637,107 @@ public class DecoratorDelegateTest extends BaseJakartaTest {
         assertJavaDiagnostics(diagnosticsParams, utils);
     }
 
+    /**
+     * Test that a decorator with a field @Delegate whose type parameter mismatches the decorated type
+     * triggers an InvalidDecoratorDelegateTypeParamMismatch diagnostic.
+     *
+     * Per CDI 3.0 spec §8.1.3: the delegate type must implement or extend every decorated type
+     * with exactly the same type parameters.
+     *
+     * Expected: Error on field "delegate" in DecoratorWithTypeParamMismatch.
+     */
+    @Test
+    public void testDecoratorWithTypeParamMismatch() throws Exception {
+        Module module = createMavenModule(new File("src/test/resources/projects/maven/jakarta-sample"));
+        IPsiUtils utils = PsiUtilsLSImpl.getInstance(getProject());
+
+        VirtualFile javaFile = LocalFileSystem.getInstance().refreshAndFindFileByPath(ModuleUtilCore.getModuleDirPath(module)
+                + "/src/main/java/io/openliberty/sample/jakarta/cdi/decorator/assignabletype/DecoratorWithTypeParamMismatch.java");
+        String uri = VfsUtilCore.virtualToIoFile(javaFile).toURI().toString();
+
+        JakartaJavaDiagnosticsParams diagnosticsParams = new JakartaJavaDiagnosticsParams();
+        diagnosticsParams.setUris(Arrays.asList(uri));
+
+        // Line 21 (0-based: 20), field name "delegate" starts at col 30, ends at col 38
+        Diagnostic typeParamMismatchError = d(20, 30, 38,
+                "The delegate type 'Processor<Object>' does not have matching type parameters for decorated type 'Processor<String>'.",
+                DiagnosticSeverity.Error,
+                "jakarta-cdi",
+                "InvalidDecoratorDelegateTypeParamMismatch");
+
+        assertJavaDiagnostics(diagnosticsParams, utils, typeParamMismatchError);
+    }
+
+    /**
+     * Test that a decorator with a method-parameter @Delegate whose type parameter mismatches the
+     * decorated type triggers an InvalidDecoratorDelegateTypeParamMismatch diagnostic.
+     *
+     * Expected: Error on parameter "delegate" in DecoratorWithMethodDelegateTypeParamMismatch.
+     */
+    @Test
+    public void testDecoratorWithMethodDelegateTypeParamMismatch() throws Exception {
+        Module module = createMavenModule(new File("src/test/resources/projects/maven/jakarta-sample"));
+        IPsiUtils utils = PsiUtilsLSImpl.getInstance(getProject());
+
+        VirtualFile javaFile = LocalFileSystem.getInstance().refreshAndFindFileByPath(ModuleUtilCore.getModuleDirPath(module)
+                + "/src/main/java/io/openliberty/sample/jakarta/cdi/decorator/assignabletype/DecoratorWithMethodDelegateTypeParamMismatch.java");
+        String uri = VfsUtilCore.virtualToIoFile(javaFile).toURI().toString();
+
+        JakartaJavaDiagnosticsParams diagnosticsParams = new JakartaJavaDiagnosticsParams();
+        diagnosticsParams.setUris(Arrays.asList(uri));
+
+        // Line 21 (0-based: 20), parameter name "delegate" starts at col 56, ends at col 64
+        Diagnostic typeParamMismatchError = d(20, 56, 64,
+                "The delegate type 'Processor<Object>' does not have matching type parameters for decorated type 'Processor<String>'.",
+                DiagnosticSeverity.Error,
+                "jakarta-cdi",
+                "InvalidDecoratorDelegateTypeParamMismatch");
+
+        assertJavaDiagnostics(diagnosticsParams, utils, typeParamMismatchError);
+    }
+
+    /**
+     * Test that a decorator with a field @Delegate whose type parameter exactly matches the decorated
+     * type does NOT trigger any diagnostic.
+     *
+     * Expected: No diagnostics.
+     */
+    @Test
+    public void testDecoratorWithMatchingTypeParam() throws Exception {
+        Module module = createMavenModule(new File("src/test/resources/projects/maven/jakarta-sample"));
+        IPsiUtils utils = PsiUtilsLSImpl.getInstance(getProject());
+
+        VirtualFile javaFile = LocalFileSystem.getInstance().refreshAndFindFileByPath(ModuleUtilCore.getModuleDirPath(module)
+                + "/src/main/java/io/openliberty/sample/jakarta/cdi/decorator/assignabletype/DecoratorWithMatchingTypeParam.java");
+        String uri = VfsUtilCore.virtualToIoFile(javaFile).toURI().toString();
+
+        JakartaJavaDiagnosticsParams diagnosticsParams = new JakartaJavaDiagnosticsParams();
+        diagnosticsParams.setUris(Arrays.asList(uri));
+
+        // No diagnostics expected — type parameters match exactly
+        assertJavaDiagnostics(diagnosticsParams, utils);
+    }
+
+    /**
+     * Test that a decorator with a method-parameter @Delegate whose type parameter exactly matches the
+     * decorated type does NOT trigger any diagnostic.
+     *
+     * Expected: No diagnostics.
+     */
+    @Test
+    public void testDecoratorWithMethodDelegateMatchingTypeParam() throws Exception {
+        Module module = createMavenModule(new File("src/test/resources/projects/maven/jakarta-sample"));
+        IPsiUtils utils = PsiUtilsLSImpl.getInstance(getProject());
+
+        VirtualFile javaFile = LocalFileSystem.getInstance().refreshAndFindFileByPath(ModuleUtilCore.getModuleDirPath(module)
+                + "/src/main/java/io/openliberty/sample/jakarta/cdi/decorator/assignabletype/DecoratorWithMethodDelegateMatchingTypeParam.java");
+        String uri = VfsUtilCore.virtualToIoFile(javaFile).toURI().toString();
+
+        JakartaJavaDiagnosticsParams diagnosticsParams = new JakartaJavaDiagnosticsParams();
+        diagnosticsParams.setUris(Arrays.asList(uri));
+
+        // No diagnostics expected — type parameters match exactly
+        assertJavaDiagnostics(diagnosticsParams, utils);
+    }
+
 }
