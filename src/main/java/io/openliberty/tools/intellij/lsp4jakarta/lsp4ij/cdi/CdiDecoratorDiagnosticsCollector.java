@@ -14,9 +14,12 @@
 package io.openliberty.tools.intellij.lsp4jakarta.lsp4ij.cdi;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import com.intellij.psi.*;
 import com.intellij.psi.util.InheritanceUtil;
@@ -169,12 +172,11 @@ public class CdiDecoratorDiagnosticsCollector extends AbstractDiagnosticsCollect
     private void validateDelegateTypeAssignability(PsiClass decoratorType, PsiElement delegateElement,
                                                    PsiJavaFile unit, List<Diagnostic> diagnostics) {
         try {
-            PsiType delegateType = null;
-            if (delegateElement instanceof PsiField) {
-                delegateType = ((PsiField) delegateElement).getType();
-            } else if (delegateElement instanceof PsiParameter) {
-                delegateType = ((PsiParameter) delegateElement).getType();
-            }
+            PsiType delegateType = delegateElement instanceof PsiField
+                    ? ((PsiField) delegateElement).getType()
+                    : delegateElement instanceof PsiParameter
+                            ? ((PsiParameter) delegateElement).getType()
+                            : null;
             if (!(delegateType instanceof PsiClassType)) {
                 return;
             }
@@ -240,30 +242,20 @@ public class CdiDecoratorDiagnosticsCollector extends AbstractDiagnosticsCollect
                 decoratedClass, delegateClass, delegateResolve.getSubstitutor());
 
         PsiTypeParameter[] decoratedTypeParams = decoratedClass.getTypeParameters();
-        PsiType[] delegateArgs = new PsiType[decoratedTypeParams.length];
-        for (int i = 0; i < decoratedTypeParams.length; i++) {
-            delegateArgs[i] = superSubstitutor.substitute(decoratedTypeParams[i]);
-        }
-        if (delegateArgs.length != decoratedArgs.length) {
+        List<PsiType> delegateArgs = Arrays.stream(decoratedTypeParams)
+                .map(superSubstitutor::substitute)
+                .collect(Collectors.toList());
+
+        boolean mismatch = delegateArgs.size() != decoratedArgs.length
+                || !delegateArgs.equals(Arrays.asList(decoratedArgs));
+
+        if (mismatch) {
             diagnostics.add(createDiagnostic(delegateElement, unit,
                     Messages.getMessage("InvalidDecoratorDelegateTypeParamMismatch",
                             delegateClassType.getPresentableText(),
                             decoratedClassType.getPresentableText()),
                     ManagedBeanConstants.DIAGNOSTIC_CODE_DELEGATE_TYPE_PARAM_MISMATCH,
                     null, DiagnosticSeverity.Error));
-            return;
-        }
-
-        for (int i = 0; i < decoratedArgs.length; i++) {
-            if (!decoratedArgs[i].equals(delegateArgs[i])) {
-                diagnostics.add(createDiagnostic(delegateElement, unit,
-                        Messages.getMessage("InvalidDecoratorDelegateTypeParamMismatch",
-                                delegateClassType.getPresentableText(),
-                                decoratedClassType.getPresentableText()),
-                        ManagedBeanConstants.DIAGNOSTIC_CODE_DELEGATE_TYPE_PARAM_MISMATCH,
-                        null, DiagnosticSeverity.Error));
-                return;
-            }
         }
     }
 
@@ -273,25 +265,16 @@ public class CdiDecoratorDiagnosticsCollector extends AbstractDiagnosticsCollect
      * Preserving type arguments allows the type-parameter mismatch check.
      */
     private List<PsiClassType> getDecoratedClassTypes(PsiClass decoratorType) {
-        List<PsiClassType> decoratedTypes = new ArrayList<>();
+        Stream<PsiClassType> extendsTypes = Arrays.stream(decoratorType.getExtendsListTypes())
+                .filter(superType -> {
+                    PsiClass superClass = superType.resolve();
+                    if (superClass == null) return false;
+                    String fqName = superClass.getQualifiedName();
+                    return fqName != null && !fqName.equals(ManagedBeanConstants.JAVA_LANG_OBJECT);
+                });
 
-        for (PsiClassType ifaceType : decoratorType.getImplementsListTypes()) {
-            if (ifaceType != null) {
-                decoratedTypes.add(ifaceType);
-            }
-        }
-
-        for (PsiClassType superType : decoratorType.getExtendsListTypes()) {
-            PsiClass superClass = superType.resolve();
-            if (superClass != null) {
-                String fqName = superClass.getQualifiedName();
-                if (fqName != null && !fqName.equals("java.lang.Object")) {
-                    decoratedTypes.add(superType);
-                }
-            }
-        }
-
-        return decoratedTypes;
+        return Stream.concat(Arrays.stream(decoratorType.getImplementsListTypes()), extendsTypes)
+                .collect(Collectors.toList());
     }
 
     /**
