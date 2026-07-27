@@ -20,6 +20,7 @@ import java.util.logging.Logger;
 
 import com.intellij.psi.*;
 import com.intellij.psi.util.InheritanceUtil;
+import com.intellij.psi.util.TypeConversionUtil;
 import io.openliberty.tools.intellij.lsp4jakarta.lsp4ij.AbstractDiagnosticsCollector;
 import io.openliberty.tools.intellij.lsp4jakarta.lsp4ij.Messages;
 import org.eclipse.lsp4j.Diagnostic;
@@ -154,7 +155,16 @@ public class CdiDecoratorDiagnosticsCollector extends AbstractDiagnosticsCollect
 
     /**
      * Validates that the delegate type implements or extends all decorated types of the
-     * decorator (CDI 3.0 spec §8.1.3).
+     * decorator, and that any type parameters match exactly (CDI 3.0 spec §8.1.3).
+     *
+     * <p>Two separate diagnostics may be raised:
+     * <ul>
+     *   <li>{@code InvalidDecoratorDelegateTypeAssignability} — when the raw delegate type
+     *       does not implement or extend a decorated type at all.</li>
+     *   <li>{@code InvalidDecoratorDelegateTypeParamMismatch} — when the raw types are
+     *       compatible but the type arguments differ (e.g., {@code Processor<Object>} vs
+     *       the decorated type {@code Processor<String>}).</li>
+     * </ul>
      */
     private void validateDelegateTypeAssignability(PsiClass decoratorType, PsiElement delegateElement,
                                                    PsiJavaFile unit, List<Diagnostic> diagnostics) {
@@ -165,31 +175,37 @@ public class CdiDecoratorDiagnosticsCollector extends AbstractDiagnosticsCollect
             } else if (delegateElement instanceof PsiParameter) {
                 delegateType = ((PsiParameter) delegateElement).getType();
             }
-            if (delegateType == null) {
+            if (!(delegateType instanceof PsiClassType)) {
                 return;
             }
 
-            PsiClass delegateClass = null;
-            if (delegateType instanceof PsiClassType) {
-                delegateClass = ((PsiClassType) delegateType).resolve();
-            }
+            PsiClassType delegateClassType = (PsiClassType) delegateType;
+            PsiClass delegateClass = delegateClassType.resolve();
             if (delegateClass == null) {
                 return;
             }
 
-            List<String> decoratedTypes = getDecoratedTypes(decoratorType);
+            List<PsiClassType> decoratedTypes = getDecoratedClassTypes(decoratorType);
             if (decoratedTypes.isEmpty()) {
                 return;
             }
 
-            List<String> missingTypes = new ArrayList<>();
-            for (String decoratedTypeFQN : decoratedTypes) {
-                if (!InheritanceUtil.isInheritor(delegateClass, decoratedTypeFQN)) {
-                    missingTypes.add(decoratedTypeFQN);
+            boolean rawMismatch = false;
+            for (PsiClassType decoratedClassType : decoratedTypes) {
+                PsiClass decoratedClass = decoratedClassType.resolve();
+                if (decoratedClass == null) {
+                    continue;
                 }
+                if (!InheritanceUtil.isInheritor(delegateClass, decoratedClass.getQualifiedName())) {
+                    rawMismatch = true;
+                    continue;
+                }
+                // Raw types are compatible — check type parameters match
+                checkTypeParamMismatch(delegateClassType, decoratedClassType, decoratedClass,
+                        delegateClass, delegateElement, unit, diagnostics);
             }
 
-            if (!missingTypes.isEmpty()) {
+            if (rawMismatch) {
                 diagnostics.add(createDiagnostic(delegateElement, unit,
                         Messages.getMessage("InvalidDecoratorDelegateTypeAssignability", delegateClass.getName()),
                         ManagedBeanConstants.DIAGNOSTIC_CODE_INVALID_DECORATOR_DELEGATE_TYPE_ASSIGNABILITY,
@@ -201,26 +217,77 @@ public class CdiDecoratorDiagnosticsCollector extends AbstractDiagnosticsCollect
     }
 
     /**
-     * Returns all decorated types of a decorator (interfaces it implements and superclasses,
-     * excluding {@code java.lang.Object}).
+     * Checks that the type arguments of the delegate's {@code PsiClassType} match those
+     * of the corresponding supertype instantiation for the given decorated type.
+     *
+     * <p>When the delegate class is not the same class as the decorated class (i.e., the
+     * delegate is a subtype), the delegate's supertype substitution for the decorated
+     * interface is resolved and compared against the decorated type's arguments.
      */
-    private List<String> getDecoratedTypes(PsiClass decoratorType) {
-        List<String> decoratedTypes = new ArrayList<>();
+    private void checkTypeParamMismatch(PsiClassType delegateClassType, PsiClassType decoratedClassType,
+                                        PsiClass decoratedClass, PsiClass delegateClass,
+                                        PsiElement delegateElement, PsiJavaFile unit,
+                                        List<Diagnostic> diagnostics) {
+        PsiType[] decoratedArgs = decoratedClassType.getParameters();
+        if (decoratedArgs.length == 0) {
+            return; // Raw/non-generic decorated type — no type param check needed
+        }
 
-        for (PsiClass iface : decoratorType.getInterfaces()) {
-            if (iface != null) {
-                String fqName = iface.getQualifiedName();
-                if (fqName != null) {
-                    decoratedTypes.add(fqName);
-                }
+        // Resolve the substitutor that maps the decorated class's type params to concrete types
+        // as seen from the delegate class (e.g., Processor<String> delegating Processor<T>)
+        PsiClassType.ClassResolveResult delegateResolve = delegateClassType.resolveGenerics();
+        PsiSubstitutor superSubstitutor = TypeConversionUtil.getSuperClassSubstitutor(
+                decoratedClass, delegateClass, delegateResolve.getSubstitutor());
+
+        PsiTypeParameter[] decoratedTypeParams = decoratedClass.getTypeParameters();
+        PsiType[] delegateArgs = new PsiType[decoratedTypeParams.length];
+        for (int i = 0; i < decoratedTypeParams.length; i++) {
+            delegateArgs[i] = superSubstitutor.substitute(decoratedTypeParams[i]);
+        }
+        if (delegateArgs.length != decoratedArgs.length) {
+            diagnostics.add(createDiagnostic(delegateElement, unit,
+                    Messages.getMessage("InvalidDecoratorDelegateTypeParamMismatch",
+                            delegateClassType.getPresentableText(),
+                            decoratedClassType.getPresentableText()),
+                    ManagedBeanConstants.DIAGNOSTIC_CODE_DELEGATE_TYPE_PARAM_MISMATCH,
+                    null, DiagnosticSeverity.Error));
+            return;
+        }
+
+        for (int i = 0; i < decoratedArgs.length; i++) {
+            if (!decoratedArgs[i].equals(delegateArgs[i])) {
+                diagnostics.add(createDiagnostic(delegateElement, unit,
+                        Messages.getMessage("InvalidDecoratorDelegateTypeParamMismatch",
+                                delegateClassType.getPresentableText(),
+                                decoratedClassType.getPresentableText()),
+                        ManagedBeanConstants.DIAGNOSTIC_CODE_DELEGATE_TYPE_PARAM_MISMATCH,
+                        null, DiagnosticSeverity.Error));
+                return;
+            }
+        }
+    }
+
+    /**
+     * Returns all decorated types of a decorator as {@code PsiClassType} instances
+     * (interfaces it implements and superclasses, excluding {@code java.lang.Object}).
+     * Preserving type arguments allows the type-parameter mismatch check.
+     */
+    private List<PsiClassType> getDecoratedClassTypes(PsiClass decoratorType) {
+        List<PsiClassType> decoratedTypes = new ArrayList<>();
+
+        for (PsiClassType ifaceType : decoratorType.getImplementsListTypes()) {
+            if (ifaceType != null) {
+                decoratedTypes.add(ifaceType);
             }
         }
 
-        PsiClass superClass = decoratorType.getSuperClass();
-        if (superClass != null) {
-            String fqName = superClass.getQualifiedName();
-            if (fqName != null && !fqName.equals("java.lang.Object")) {
-                decoratedTypes.add(fqName);
+        for (PsiClassType superType : decoratorType.getExtendsListTypes()) {
+            PsiClass superClass = superType.resolve();
+            if (superClass != null) {
+                String fqName = superClass.getQualifiedName();
+                if (fqName != null && !fqName.equals("java.lang.Object")) {
+                    decoratedTypes.add(superType);
+                }
             }
         }
 
