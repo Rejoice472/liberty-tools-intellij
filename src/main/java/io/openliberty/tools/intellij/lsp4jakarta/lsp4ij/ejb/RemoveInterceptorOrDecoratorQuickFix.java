@@ -24,29 +24,27 @@ import org.eclipse.lsp4j.Diagnostic;
 
 import java.util.List;
 
-import static io.openliberty.tools.intellij.lsp4jakarta.lsp4ij.ejb.EjbConstants.STATELESS_FQ_NAME;
-import static io.openliberty.tools.intellij.lsp4jakarta.lsp4ij.ejb.EjbConstants.STATEFUL_FQ_NAME;
-import static io.openliberty.tools.intellij.lsp4jakarta.lsp4ij.ejb.EjbConstants.SINGLETON_FQ_NAME;
+import static io.openliberty.tools.intellij.lsp4jakarta.lsp4ij.ejb.EjbConstants.INTERCEPTOR_FQ_NAME;
+import static io.openliberty.tools.intellij.lsp4jakarta.lsp4ij.ejb.EjbConstants.DECORATOR_FQ_NAME;
 
 /**
- * Quick fix for removing session bean annotations (@Stateless, @Stateful, @Singleton)
- * when they conflict with @Interceptor or @Decorator.
+ * Quick fix for removing @Interceptor or @Decorator annotations from session beans.
  */
-public class RemoveSessionBeanAnnotationQuickFix extends RemoveAnnotationConflictQuickFix {
+public class RemoveInterceptorOrDecoratorQuickFix extends RemoveAnnotationConflictQuickFix {
 
-    public RemoveSessionBeanAnnotationQuickFix() {
-        super(false, STATELESS_FQ_NAME, STATEFUL_FQ_NAME, SINGLETON_FQ_NAME);
+    public RemoveInterceptorOrDecoratorQuickFix() {
+        super(false, INTERCEPTOR_FQ_NAME, DECORATOR_FQ_NAME);
     }
 
     @Override
     public String getParticipantId() {
-        return RemoveSessionBeanAnnotationQuickFix.class.getName();
+        return RemoveInterceptorOrDecoratorQuickFix.class.getName();
     }
 
     @Override
     protected void removeAnnotations(Diagnostic diagnostic, JavaCodeActionContext context,
                                      List<CodeAction> codeActions) {
-        // Only generate code actions for session bean annotations that are actually present on the class
+        // Only generate code actions for @Interceptor or @Decorator annotations that are actually present on the class
         PsiElement node = context.getCoveredNode();
         PsiClass parentType = PsiTreeUtil.getParentOfType(node, PsiClass.class);
         

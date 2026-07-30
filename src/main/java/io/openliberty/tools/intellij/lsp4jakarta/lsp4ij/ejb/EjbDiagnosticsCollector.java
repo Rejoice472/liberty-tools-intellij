@@ -25,7 +25,6 @@ import org.eclipse.lsp4j.DiagnosticSeverity;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import static io.openliberty.tools.intellij.lsp4jakarta.lsp4ij.ejb.EjbConstants.*;
 
@@ -52,14 +51,14 @@ public class EjbDiagnosticsCollector extends AbstractDiagnosticsCollector {
         PsiUtils.collectAllClasses(unit.getClasses(), allClasses);
 
         for (PsiClass type : allClasses) {
+            String[] typeAnnotations = getAnnotationNames(type);
             List<String> sessionBeanAnnotations = getMatchedJavaElementNames(type,
-                    Stream.of(type.getAnnotations())
-                            .map(PsiAnnotation::getQualifiedName)
-                            .toArray(String[]::new),
+                    typeAnnotations,
                     SESSION_BEAN_ANNOTATIONS);
 
             if (!sessionBeanAnnotations.isEmpty()) {
                 validateSessionBeanClass(type, unit, diagnostics);
+                validateSessionBeanInterceptorDecorator(type, typeAnnotations, unit, diagnostics);
                 if (sessionBeanAnnotations.size() > 1) {
                     validateConflictingSessionBeanAnnotations(type, unit, sessionBeanAnnotations, diagnostics);
                 }
@@ -112,7 +111,36 @@ public class EjbDiagnosticsCollector extends AbstractDiagnosticsCollector {
                     null,
                     DiagnosticSeverity.Error));
         }
-    }    
+    }
+
+    /**
+     * Validates that a session bean does not have @Interceptor or @Decorator annotations.
+     *
+     * A diagnostic is reported if the session bean class is annotated with
+     * @Interceptor or @Decorator, as these annotations are not allowed on session beans.
+     *
+     * @param type the class to validate
+     * @param typeAnnotations the annotation names already extracted from the type
+     * @param unit the compilation unit
+     * @param diagnostics the list to add diagnostics to
+     */
+    private void validateSessionBeanInterceptorDecorator(PsiClass type, String[] typeAnnotations,
+                                                         PsiJavaFile unit, List<Diagnostic> diagnostics) {
+        List<String> invalidAnnotations = getMatchedJavaElementNames(type,
+                typeAnnotations,
+                new String[] {
+                        INTERCEPTOR_FQ_NAME,
+                        DECORATOR_FQ_NAME
+                });
+
+        if (!invalidAnnotations.isEmpty()) {
+            diagnostics.add(createDiagnostic(type, unit,
+                    Messages.getMessage("InvalidSessionBeanWithInterceptorOrDecorator"),
+                    DIAGNOSTIC_CODE_SESSION_BEAN_INTERCEPTOR_DECORATOR,
+                    null,
+                    DiagnosticSeverity.Error));
+        }
+    }
 
     /**
      * Validates that a session bean class does not have more than one session bean stereotype annotation.
@@ -137,11 +165,11 @@ public class EjbDiagnosticsCollector extends AbstractDiagnosticsCollector {
 
     /**
      * Validates that a session bean has a public no-arg constructor.
-     * 
+     *
      * A diagnostic is reported if:
      * - The class has explicit constructors AND
      * - None of them are public no-arg constructors
-     * 
+     *
      * If the class has no explicit constructors, Java provides a default
      * public no-arg constructor, so no diagnostic is needed.
      *
