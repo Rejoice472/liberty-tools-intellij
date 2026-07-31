@@ -20,10 +20,7 @@ import io.openliberty.tools.intellij.lsp4mp4ij.psi.core.utils.AnnotationUtils;
 import org.eclipse.lsp4j.Diagnostic;
 import org.eclipse.lsp4j.DiagnosticSeverity;
 
-import java.util.Arrays;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.stream.Stream;
 
 import static io.openliberty.tools.intellij.lsp4jakarta.lsp4ij.cdi.ManagedBeanConstants.*;
@@ -59,24 +56,22 @@ public class CdiWildcardDiagnosticsCollector extends AbstractDiagnosticsCollecto
         String[] scopeFQNames = SCOPE_FQ_NAMES.toArray(String[]::new);
 
         for (PsiClass type : unit.getClasses()) {
-            // Hoisted once per type — used by both field and method branches.
-            Set<String> typeParamNames = getTypeParameterNames(type);
+            // Whether the class declares any type parameters at all (e.g. class Foo<T>).
+            // Used as a fast-exit guard before the costlier type-variable checks.
+            boolean isGeneric = type.getTypeParameters().length > 0;
 
             for (PsiField field : type.getFields()) {
-                boolean hasInject = AnnotationUtils.hasAnnotation(field, INJECT_FQ_NAME);
-                boolean hasProduces = AnnotationUtils.hasAnnotation(field, PRODUCES_FQ_NAME);
-
-                if (hasInject) {
+                if (AnnotationUtils.hasAnnotation(field, INJECT_FQ_NAME)) {
                     if (containsWildcard(field.getType())) {
                         diagnostics.add(createDiagnostic(field, unit,
                                 Messages.getMessage("InvalidWildcardTypeInInjectField"),
                                 DIAGNOSTIC_CODE_WILDCARD_INJECT, null, DiagnosticSeverity.Error));
                     }
-                } else if (hasProduces) {
+                } else if (AnnotationUtils.hasAnnotation(field, PRODUCES_FQ_NAME)) {
                     String[] annotationNames = Stream.of(field.getAnnotations())
                             .map(PsiAnnotation::getQualifiedName).toArray(String[]::new);
                     checkProducerMember(type, field, field.getType(), unit, diagnostics,
-                            annotationNames, typeParamNames, scopeFQNames,
+                            annotationNames, isGeneric, scopeFQNames,
                             new String[]{ DIAGNOSTIC_CODE_WILDCARD_PRODUCER_FIELD,
                                           DIAGNOSTIC_CODE_PRODUCER_FIELD_BARE_TYPE_VAR,
                                           DIAGNOSTIC_CODE_PRODUCER_FIELD_TYPE_VAR_NON_DEPENDENT },
@@ -87,10 +82,7 @@ public class CdiWildcardDiagnosticsCollector extends AbstractDiagnosticsCollecto
             }
 
             for (PsiMethod method : type.getMethods()) {
-                boolean hasInject = AnnotationUtils.hasAnnotation(method, INJECT_FQ_NAME);
-                boolean hasProduces = AnnotationUtils.hasAnnotation(method, PRODUCES_FQ_NAME);
-
-                if (hasInject) {
+                if (AnnotationUtils.hasAnnotation(method, INJECT_FQ_NAME)) {
                     for (PsiParameter param : method.getParameterList().getParameters()) {
                         if (containsWildcard(param.getType())) {
                             diagnostics.add(createDiagnostic(param, unit,
@@ -98,13 +90,13 @@ public class CdiWildcardDiagnosticsCollector extends AbstractDiagnosticsCollecto
                                     DIAGNOSTIC_CODE_WILDCARD_INJECT, null, DiagnosticSeverity.Error));
                         }
                     }
-                } else if (hasProduces) {
+                } else if (AnnotationUtils.hasAnnotation(method, PRODUCES_FQ_NAME)) {
                     PsiType returnType = method.getReturnType();
                     if (returnType == null) continue;
                     String[] annotationNames = Stream.of(method.getAnnotations())
                             .map(PsiAnnotation::getQualifiedName).toArray(String[]::new);
                     checkProducerMember(type, method, returnType, unit, diagnostics,
-                            annotationNames, typeParamNames, scopeFQNames,
+                            annotationNames, isGeneric, scopeFQNames,
                             new String[]{ DIAGNOSTIC_CODE_WILDCARD_PRODUCER_METHOD,
                                           DIAGNOSTIC_CODE_PRODUCER_METHOD_BARE_TYPE_VAR,
                                           DIAGNOSTIC_CODE_PRODUCER_METHOD_TYPE_VAR_NON_DEPENDENT },
@@ -121,29 +113,30 @@ public class CdiWildcardDiagnosticsCollector extends AbstractDiagnosticsCollecto
      *
      * <p>{@code codes[0]} / {@code msgKeys[0]} — wildcard in type (always invalid)<br>
      * {@code codes[1]} / {@code msgKeys[1]} — bare type variable or array of one (always invalid)<br>
-     * {@code codes[2]} / {@code msgKeys[2]} — parameterized type with type variable and non-{@code @Dependent} scope
+     * {@code codes[2]} / {@code msgKeys[2]} — parameterized type with type variable and
+     * non-{@code @Dependent} scope
      */
     private void checkProducerMember(PsiClass type, PsiElement element, PsiType psiType,
                                      PsiJavaFile unit, List<Diagnostic> diagnostics,
-                                     String[] annotationNames, Set<String> typeParamNames,
+                                     String[] annotationNames, boolean isGeneric,
                                      String[] scopeFQNames, String[] codes, String[] msgKeys) {
-        // Rule 0: wildcard in type
+        // Rule 0: wildcard in type — always a definition error
         if (containsWildcard(psiType)) {
             diagnostics.add(createDiagnostic(element, unit, Messages.getMessage(msgKeys[0]),
                     codes[0], null, DiagnosticSeverity.Error));
         }
 
-        if (typeParamNames.isEmpty()) {
+        if (!isGeneric) {
             return;
         }
 
-        // Rule 1: bare type variable (T or T[]) — always invalid
-        if (isBareTypeVariable(psiType, typeParamNames)) {
+        // Rule 1: bare type variable (T or T[]) — always a definition error
+        if (isBareTypeVariable(psiType)) {
             diagnostics.add(createDiagnostic(element, unit, Messages.getMessage(msgKeys[1]),
                     codes[1], null, DiagnosticSeverity.Error));
         }
         // Rule 2: parameterized type with type variable — requires @Dependent scope
-        else if (containsTypeVariable(psiType, typeParamNames)) {
+        else if (containsTypeVariable(psiType)) {
             boolean hasNonDependentScope = getMatchedJavaElementNames(type, annotationNames, scopeFQNames)
                     .stream().anyMatch(s -> !DEPENDENT_FQ_NAME.equals(s));
             if (hasNonDependentScope) {
@@ -154,47 +147,30 @@ public class CdiWildcardDiagnosticsCollector extends AbstractDiagnosticsCollecto
     }
 
     /**
-     * Returns the set of type parameter names declared directly on {@code psiClass}
-     * (e.g. {@code {"T", "K", "V"}} for {@code class Foo<T, K, V>}).
+     * Returns {@code true} if {@code psiType} is a bare type variable (e.g. {@code T}) or
+     * an array whose ultimate element type is a type variable (e.g. {@code T[]}).
+     *
+     * <p>PSI resolves type arguments fully, so a bare type parameter always resolves to a
+     * {@link PsiTypeParameter} — no name comparison needed.
      */
-    private Set<String> getTypeParameterNames(PsiClass psiClass) {
-        Set<String> names = new HashSet<>();
-        for (PsiTypeParameter tp : psiClass.getTypeParameters()) {
-            names.add(tp.getName());
-        }
-        return names;
-    }
-
-    /**
-     * Returns {@code true} if {@code psiType} is a bare type variable (e.g. {@code T})
-     * or an array whose ultimate element type is a type variable (e.g. {@code T[]}).
-     */
-    private boolean isBareTypeVariable(PsiType psiType, Set<String> typeParamNames) {
-        if (psiType == null) {
-            return false;
-        }
-        // Resolved type variable (PsiClassType whose resolved class is a PsiTypeParameter)
+    private boolean isBareTypeVariable(PsiType psiType) {
         if (psiType instanceof PsiClassType) {
-            PsiClass resolved = ((PsiClassType) psiType).resolve();
-            if (resolved instanceof PsiTypeParameter) {
-                return typeParamNames.contains(resolved.getName());
-            }
+            return ((PsiClassType) psiType).resolve() instanceof PsiTypeParameter;
         }
-        // Array type: check element type recursively
         if (psiType instanceof PsiArrayType) {
-            return isBareTypeVariable(((PsiArrayType) psiType).getComponentType(), typeParamNames);
+            return isBareTypeVariable(((PsiArrayType) psiType).getComponentType());
         }
         return false;
     }
 
     /**
-     * Returns {@code true} if {@code psiType} is a parameterized type that contains
-     * at least one type variable in its type arguments (recursively).
+     * Returns {@code true} if {@code psiType} is a parameterized type that contains at
+     * least one type variable in its type arguments (recursively).
      */
-    private boolean containsTypeVariable(PsiType psiType, Set<String> typeParamNames) {
+    private boolean containsTypeVariable(PsiType psiType) {
         if (psiType instanceof PsiClassType) {
             for (PsiType typeArg : ((PsiClassType) psiType).getParameters()) {
-                if (isBareTypeVariable(typeArg, typeParamNames) || containsTypeVariable(typeArg, typeParamNames)) {
+                if (isBareTypeVariable(typeArg) || containsTypeVariable(typeArg)) {
                     return true;
                 }
             }
@@ -203,13 +179,10 @@ public class CdiWildcardDiagnosticsCollector extends AbstractDiagnosticsCollecto
     }
 
     /**
-     * Returns {@code true} if {@code type} contains a wildcard type parameter
-     * ({@code ?}, {@code ? extends}, or {@code ? super}) anywhere in the type tree.
+     * Returns {@code true} if {@code type} contains a wildcard ({@code ?},
+     * {@code ? extends}, or {@code ? super}) anywhere in the type tree.
      */
     private boolean containsWildcard(PsiType type) {
-        if (type == null) {
-            return false;
-        }
         if (type instanceof PsiWildcardType) {
             return true;
         }
