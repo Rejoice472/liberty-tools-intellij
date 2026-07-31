@@ -22,6 +22,8 @@ public class EjbConstants {
     public static final String STATELESS_FQ_NAME = "jakarta.ejb.Stateless";
     public static final String STATEFUL_FQ_NAME = "jakarta.ejb.Stateful";
     public static final String SINGLETON_FQ_NAME = "jakarta.ejb.Singleton";
+    public static final String INTERCEPTOR_FQ_NAME = "jakarta.interceptor.Interceptor";
+    public static final String DECORATOR_FQ_NAME = "jakarta.decorator.Decorator";
 
     /* Interfaces */
     public static final String MESSAGE_LISTENER_FQ_NAME = "jakarta.jms.MessageListener";
@@ -48,7 +50,8 @@ public class EjbConstants {
     public static final String DIAGNOSTIC_CODE_INVALID_SESSION_SYNC_FINAL = "InvalidSessionSyncMethodFinal";
     public static final String DIAGNOSTIC_CODE_INVALID_SESSION_SYNC_STATIC = "InvalidSessionSyncMethodStatic";
     public static final String DIAGNOSTIC_CODE_INVALID_SESSION_SYNC_NON_VOID = "InvalidSessionSyncMethodNonVoid";
-    public static final String DIAGNOSTIC_CODE_CONFLICTING_ANNOTATIONS = "ConflictingSessionBeanAnnotations";
+    public static final String DIAGNOSTIC_CODE_SESSION_BEAN_INTERCEPTOR_DECORATOR = "InvalidSessionBeanWithInterceptorOrDecorator";
     public static final String DIAGNOSTIC_CODE_FINALIZE_METHOD = "SessionBeanFinalizeMethod";
+    public static final String DIAGNOSTIC_CODE_CONFLICTING_ANNOTATIONS = "ConflictingSessionBeanAnnotations";
     public static final String FINALIZE_METHOD_NAME = "finalize";
 }
