@@ -62,10 +62,16 @@ public class CdiWildcardDiagnosticsCollector extends AbstractDiagnosticsCollecto
 
             for (PsiField field : type.getFields()) {
                 if (AnnotationUtils.hasAnnotation(field, INJECT_FQ_NAME)) {
-                    if (containsWildcard(field.getType())) {
+                    PsiType fieldType = field.getType();
+                    if (containsWildcard(fieldType)) {
                         diagnostics.add(createDiagnostic(field, unit,
                                 Messages.getMessage("InvalidWildcardTypeInInjectField"),
                                 DIAGNOSTIC_CODE_WILDCARD_INJECT, null, DiagnosticSeverity.Error));
+                    } else if (isGeneric && isBareTypeVariable(fieldType)) {
+                        // Rule: a bare type variable (T or T[]) is not a legal bean type
+                        diagnostics.add(createDiagnostic(field, unit,
+                                Messages.getMessage("InvalidBareTypeVariableInInjectField"),
+                                DIAGNOSTIC_CODE_BARE_TYPE_VAR_INJECT_FIELD, null, DiagnosticSeverity.Error));
                     }
                 } else if (AnnotationUtils.hasAnnotation(field, PRODUCES_FQ_NAME)) {
                     String[] annotationNames = Stream.of(field.getAnnotations())
@@ -84,10 +90,16 @@ public class CdiWildcardDiagnosticsCollector extends AbstractDiagnosticsCollecto
             for (PsiMethod method : type.getMethods()) {
                 if (AnnotationUtils.hasAnnotation(method, INJECT_FQ_NAME)) {
                     for (PsiParameter param : method.getParameterList().getParameters()) {
-                        if (containsWildcard(param.getType())) {
+                        PsiType paramType = param.getType();
+                        if (containsWildcard(paramType)) {
                             diagnostics.add(createDiagnostic(param, unit,
                                     Messages.getMessage("InvalidWildcardTypeInInjectMethod"),
                                     DIAGNOSTIC_CODE_WILDCARD_INJECT, null, DiagnosticSeverity.Error));
+                        } else if (isGeneric && isBareTypeVariable(paramType)) {
+                            // Rule: a bare type variable (T or T[]) is not a legal bean type
+                            diagnostics.add(createDiagnostic(param, unit,
+                                    Messages.getMessage("InvalidBareTypeVariableInInjectMethodParam"),
+                                    DIAGNOSTIC_CODE_BARE_TYPE_VAR_INJECT_METHOD_PARAM, null, DiagnosticSeverity.Error));
                         }
                     }
                 } else if (AnnotationUtils.hasAnnotation(method, PRODUCES_FQ_NAME)) {
