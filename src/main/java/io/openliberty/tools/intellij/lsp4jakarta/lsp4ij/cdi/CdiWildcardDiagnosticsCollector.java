@@ -96,9 +96,11 @@ public class CdiWildcardDiagnosticsCollector extends AbstractDiagnosticsCollecto
                                     Messages.getMessage("InvalidWildcardTypeInInjectMethod"),
                                     DIAGNOSTIC_CODE_WILDCARD_INJECT, null, DiagnosticSeverity.Error));
                         } else if (isGeneric && isBareTypeVariable(paramType)) {
-                            // Rule: a bare type variable (T or T[]) is not a legal bean type
-                            diagnostics.add(createDiagnostic(param, unit,
-                                    Messages.getMessage("InvalidBareTypeVariableInInjectMethodParam"),
+                            // Rule: a bare type variable (T or T[]) is not a legal bean type.
+                            // Diagnostic is placed on the method so the RemoveAnnotationQuickFix
+                            // can resolve the @Inject annotation on the declaring method.
+                            diagnostics.add(createDiagnostic(method, unit,
+                                    Messages.getMessage("InvalidBareTypeVariableInInjectMethodParam", param.getName()),
                                     DIAGNOSTIC_CODE_BARE_TYPE_VAR_INJECT_METHOD_PARAM, null, DiagnosticSeverity.Error));
                         }
                     }
