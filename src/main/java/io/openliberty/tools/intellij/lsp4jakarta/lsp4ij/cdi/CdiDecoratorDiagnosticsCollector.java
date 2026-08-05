@@ -142,10 +142,10 @@ public class CdiDecoratorDiagnosticsCollector extends AbstractDiagnosticsCollect
      * or extend a decorated type of the decorator (or specifies different type parameters),
      * the container automatically detects the problem and treats it as a definition error."
      *
-     * @param decoratorType the decorator class
+     * @param decoratorType   the decorator class
      * @param delegateElement the delegate injection point (field or parameter)
-     * @param unit the compilation unit
-     * @param diagnostics the list to add diagnostics to
+     * @param unit            the compilation unit
+     * @param diagnostics     the list to add diagnostics to
      */
     private void validateDelegateTypeAssignability(PsiClass decoratorType, PsiElement delegateElement,
                                                    PsiJavaFile unit, List<Diagnostic> diagnostics) {
@@ -156,48 +156,65 @@ public class CdiDecoratorDiagnosticsCollector extends AbstractDiagnosticsCollect
             } else if (delegateElement instanceof PsiParameter) {
                 delegateType = ((PsiParameter) delegateElement).getType();
             }
-
             if (delegateType == null) {
-                return; // Cannot resolve delegate type, skip validation
+                return;
             }
-
+            // Primitives are never valid bean types — report immediately without further resolution.
+            if (delegateType instanceof PsiPrimitiveType) {
+                reportDelegateTypeAssignabilityDiagnostic(delegateElement, unit, delegateType.getPresentableText(), diagnostics);
+                return;
+            }
             // Resolve the delegate type to a PsiClass
             PsiClass delegateClass = null;
             if (delegateType instanceof PsiClassType) {
                 delegateClass = ((PsiClassType) delegateType).resolve();
             }
-
             if (delegateClass == null) {
                 return; // Cannot resolve delegate type, skip validation
             }
-
             // Get all decorated types (interfaces and superclasses of the decorator)
             List<String> decoratedTypes = getDecoratedTypes(decoratorType);
             if (decoratedTypes.isEmpty()) {
-                return; // No decorated types to validate against
+                // If the delegate type is java.lang.Object, skip — Object is used as a
+                // raw/untyped delegate and carries no assignability constraint.
+                if (ManagedBeanConstants.OBJECT_FQ_NAME.equals(delegateClass.getQualifiedName())) {
+                    return;
+                }
+                // Decorator implements/extends nothing — a non-Object delegate type cannot
+                // satisfy "must implement or extend all decorated types" (CDI 3.0 §8.1.3)
+                reportDelegateTypeAssignabilityDiagnostic(delegateElement, unit, delegateClass.getName(), diagnostics);
+                return;
             }
-
             // Check if delegate type implements/extends all decorated types
             List<String> missingTypes = new ArrayList<>();
             for (String decoratedTypeFQN : decoratedTypes) {
-                // Use InheritanceUtil.isInheritor for checking
                 if (!InheritanceUtil.isInheritor(delegateClass, decoratedTypeFQN)) {
                     missingTypes.add(decoratedTypeFQN);
                 }
             }
-
             // Report diagnostic if delegate type doesn't implement all decorated types
             if (!missingTypes.isEmpty()) {
-                String delegateTypeSimpleName = delegateClass.getName();
-                String message = Messages.getMessage("InvalidDecoratorDelegateTypeAssignability",
-                        delegateTypeSimpleName);
-                diagnostics.add(createDiagnostic(delegateElement, unit, message,
-                        ManagedBeanConstants.DIAGNOSTIC_CODE_INVALID_DECORATOR_DELEGATE_TYPE_ASSIGNABILITY,
-                        null, DiagnosticSeverity.Error));
+                reportDelegateTypeAssignabilityDiagnostic(delegateElement, unit, delegateClass.getName(), diagnostics);
             }
         } catch (Exception e) {
             LOGGER.log(Level.WARNING, "Exception during delegate type assignability validation", e);
         }
+    }
+
+    /**
+     * Reports an {@code InvalidDecoratorDelegateTypeAssignability} diagnostic on the given delegate element.
+     *
+     * @param delegateElement  the delegate injection point (field or parameter)
+     * @param unit             the compilation unit
+     * @param delegateTypeName the simple name of the delegate type (used in the message)
+     * @param diagnostics      the list to add the diagnostic to
+     */
+    private void reportDelegateTypeAssignabilityDiagnostic(PsiElement delegateElement, PsiJavaFile unit,
+                                                           String delegateTypeName, List<Diagnostic> diagnostics) {
+        String message = Messages.getMessage("InvalidDecoratorDelegateTypeAssignability", delegateTypeName);
+        diagnostics.add(createDiagnostic(delegateElement, unit, message,
+                ManagedBeanConstants.DIAGNOSTIC_CODE_INVALID_DECORATOR_DELEGATE_TYPE_ASSIGNABILITY,
+                null, DiagnosticSeverity.Error));
     }
 
     /**
@@ -224,7 +241,7 @@ public class CdiDecoratorDiagnosticsCollector extends AbstractDiagnosticsCollect
         PsiClass superClass = decoratorType.getSuperClass();
         if (superClass != null) {
             String fqName = superClass.getQualifiedName();
-            if (fqName != null && !fqName.equals("java.lang.Object")) {
+            if (fqName != null && !ManagedBeanConstants.OBJECT_FQ_NAME.equals(fqName)) {
                 decoratedTypes.add(fqName);
             }
         }
