@@ -16,13 +16,12 @@ package io.openliberty.tools.intellij.lsp4jakarta.lsp4ij.ejb;
 import com.google.gson.Gson;
 import com.intellij.psi.*;
 import io.openliberty.tools.intellij.lsp4jakarta.lsp4ij.AbstractDiagnosticsCollector;
-import io.openliberty.tools.intellij.lsp4jakarta.lsp4ij.JDTUtils;
+import io.openliberty.tools.intellij.lsp4jakarta.lsp4ij.DiagnosticsUtils;
 import io.openliberty.tools.intellij.lsp4jakarta.lsp4ij.Messages;
 import org.eclipse.lsp4j.Diagnostic;
 import org.eclipse.lsp4j.DiagnosticSeverity;
 
 import java.util.List;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static io.openliberty.tools.intellij.lsp4jakarta.lsp4ij.ejb.EjbConstants.*;
@@ -89,10 +88,7 @@ public class EjbDiagnosticsCollector extends AbstractDiagnosticsCollector {
             return;
         }
 
-        String annotationNames = matchedAnnotations.stream()
-                .map(fq -> "@" + JDTUtils.getSimpleName(fq))
-                .distinct()
-                .collect(Collectors.joining(", "));
+        String annotationNames = DiagnosticsUtils.getSimpleAnnotationNames(matchedAnnotations, "@");
 
         if (method.hasModifierProperty(PsiModifier.FINAL)) {
             diagnostics.add(createDiagnostic(method, unit,
@@ -160,9 +156,7 @@ public class EjbDiagnosticsCollector extends AbstractDiagnosticsCollector {
     private void validateConflictingSessionBeanAnnotations(PsiClass type, PsiJavaFile unit,
                                                            List<String> sessionBeanAnnotations,
                                                            List<Diagnostic> diagnostics) {
-        String annotationNames = sessionBeanAnnotations.stream()
-                .map(fqName -> "@" + JDTUtils.getSimpleName(fqName))
-                .collect(Collectors.joining(", "));
+        String annotationNames = DiagnosticsUtils.getSimpleAnnotationNames(sessionBeanAnnotations, "@");
         String message = Messages.getMessage("SessionBeanConflictingAnnotations", annotationNames);
         diagnostics.add(createDiagnostic(type, unit, message,
                 DIAGNOSTIC_CODE_CONFLICTING_ANNOTATIONS,
