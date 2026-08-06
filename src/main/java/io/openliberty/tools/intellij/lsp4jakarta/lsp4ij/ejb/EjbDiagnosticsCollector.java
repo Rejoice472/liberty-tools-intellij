@@ -58,11 +58,11 @@ public class EjbDiagnosticsCollector extends AbstractDiagnosticsCollector {
                 }
                 validateSessionBeanConstructor(type, unit, diagnostics);
                 validateSessionBeanFinalizeMethod(type, unit, diagnostics);
-            }
 
-            // Validate session synchronization methods (@AfterBegin, @BeforeCompletion, @AfterCompletion)
-            for (PsiMethod method : type.getMethods()) {
-                validateSessionSyncMethod(type, method, unit, diagnostics);
+                // Validate session synchronization methods (@AfterBegin, @BeforeCompletion, @AfterCompletion)
+                for (PsiMethod method : type.getMethods()) {
+                    validateSessionSyncMethod(type, method, unit, diagnostics);
+                }
             }
         }
     }

@@ -360,6 +360,28 @@ public class SessionSyncMethodTest extends BaseJakartaTest {
     }
 
     // -----------------------------------------------------------------------
+    // Negative: non-session-bean class produces no diagnostics
+    // -----------------------------------------------------------------------
+
+    @Test
+    public void testNonSessionBeanWithSyncAnnotationsProducesNoDiagnostics() throws Exception {
+        Module module = createMavenModule(new File("src/test/resources/projects/maven/jakarta-sample"));
+        IPsiUtils utils = PsiUtilsLSImpl.getInstance(getProject());
+
+        VirtualFile javaFile = LocalFileSystem.getInstance().refreshAndFindFileByPath(
+                ModuleUtilCore.getModuleDirPath(module) + BASE_PATH + "NonSessionBeanWithSyncAnnotations.java");
+        String uri = VfsUtilCore.virtualToIoFile(javaFile).toURI().toString();
+
+        JakartaJavaDiagnosticsParams diagnosticsParams = new JakartaJavaDiagnosticsParams();
+        diagnosticsParams.setUris(Arrays.asList(uri));
+
+        // No session-bean annotation (@Stateful/@Stateless/@Singleton) is present,
+        // so session-sync rules must not fire even though the methods have illegal
+        // modifiers / return types that would be flagged on a real session bean.
+        assertJavaDiagnostics(diagnosticsParams, utils);
+    }
+
+    // -----------------------------------------------------------------------
     // Negative: valid session synchronization methods produce no diagnostics
     // -----------------------------------------------------------------------
 
