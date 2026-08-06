@@ -175,13 +175,8 @@ public class CdiDecoratorDiagnosticsCollector extends AbstractDiagnosticsCollect
             // Get all decorated types (interfaces and superclasses of the decorator)
             List<String> decoratedTypes = getDecoratedTypes(decoratorType);
             if (decoratedTypes.isEmpty()) {
-                // If the delegate type is java.lang.Object, skip — Object is used as a
-                // raw/untyped delegate and carries no assignability constraint.
-                if (ManagedBeanConstants.OBJECT_FQ_NAME.equals(delegateClass.getQualifiedName())) {
-                    return;
-                }
-                // Decorator implements/extends nothing — a non-Object delegate type cannot
-                // satisfy "must implement or extend all decorated types" (CDI 3.0 §8.1.3)
+                // Decorator has no decorated types — the delegate type cannot satisfy
+                // "must implement or extend all decorated types" (CDI 3.0 §8.1.3)
                 reportDelegateTypeAssignabilityDiagnostic(delegateElement, unit, delegateClass.getName(), diagnostics);
                 return;
             }
