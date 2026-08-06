@@ -54,63 +54,63 @@ public class InterceptorDecoratorScopesTest extends BaseJakartaTest {
         JakartaJavaDiagnosticsParams diagnosticsParams = new JakartaJavaDiagnosticsParams();
         diagnosticsParams.setUris(Arrays.asList(uri));
 
-        // Line 53: Invalid interceptor with @ApplicationScoped
-        Diagnostic interceptorAppScoped = d(53, 6, 38, "Interceptors and decorators must be annotated with the @Dependent scope. Any other scope is invalid.",
+        // Line 54: Invalid interceptor with @ApplicationScoped
+        Diagnostic interceptorAppScoped = d(54, 6, 38, "Interceptors and decorators must be annotated with the @Dependent scope. Any other scope is invalid.",
                 DiagnosticSeverity.Error, "jakarta-cdi", "InvalidInterceptorOrDecorator",
                 createJsonArray("jakarta.enterprise.context.ApplicationScoped"));
 
-        // Line 60: Invalid interceptor with @SessionScoped
-        Diagnostic interceptorSessionScoped = d(60, 6, 34, "Interceptors and decorators must be annotated with the @Dependent scope. Any other scope is invalid.",
+        // Line 61: Invalid interceptor with @SessionScoped
+        Diagnostic interceptorSessionScoped = d(61, 6, 34, "Interceptors and decorators must be annotated with the @Dependent scope. Any other scope is invalid.",
                 DiagnosticSeverity.Error, "jakarta-cdi", "InvalidInterceptorOrDecorator",
                 createJsonArray("jakarta.enterprise.context.SessionScoped"));
 
-        // Line 68: Invalid interceptor with multiple scopes - InvalidScopeDecl
-        Diagnostic interceptorMultiScopeDecl = d(68, 6, 42, "Scope type annotations must be specified by a managed bean class at most once.",
+        // Line 69: Invalid interceptor with multiple scopes - InvalidScopeDecl
+        Diagnostic interceptorMultiScopeDecl = d(69, 6, 42, "Scope type annotations must be specified by a managed bean class at most once.",
                 DiagnosticSeverity.Error, "jakarta-cdi", "InvalidScopeDecl",
                 createJsonArray("jakarta.enterprise.context.SessionScoped", "jakarta.enterprise.context.ApplicationScoped"));
 
-        // Line 68: Invalid interceptor with multiple scopes - InvalidInterceptorOrDecorator
-        Diagnostic interceptorMultiScope = d(68, 6, 42, "Interceptors and decorators must be annotated with the @Dependent scope. Any other scope is invalid.",
+        // Line 69: Invalid interceptor with multiple scopes - InvalidInterceptorOrDecorator
+        Diagnostic interceptorMultiScope = d(69, 6, 42, "Interceptors and decorators must be annotated with the @Dependent scope. Any other scope is invalid.",
                 DiagnosticSeverity.Error, "jakarta-cdi", "InvalidInterceptorOrDecorator",
                 createJsonArray("jakarta.enterprise.context.ApplicationScoped", "jakarta.enterprise.context.SessionScoped"));
 
-        // Line 76: Invalid decorator with @ApplicationScoped
-        Diagnostic decoratorAppScoped = d(76, 6, 36, "Interceptors and decorators must be annotated with the @Dependent scope. Any other scope is invalid.",
+        // Line 77: Invalid decorator with @ApplicationScoped
+        Diagnostic decoratorAppScoped = d(77, 6, 36, "Interceptors and decorators must be annotated with the @Dependent scope. Any other scope is invalid.",
                 DiagnosticSeverity.Error, "jakarta-cdi", "InvalidInterceptorOrDecorator",
                 createJsonArray("jakarta.enterprise.context.ApplicationScoped"));
 
-        // Line 85: Invalid decorator with @SessionScoped
-        Diagnostic decoratorSessionScoped = d(85, 6, 32, "Interceptors and decorators must be annotated with the @Dependent scope. Any other scope is invalid.",
+        // Line 86: Invalid decorator with @SessionScoped
+        Diagnostic decoratorSessionScoped = d(86, 6, 32, "Interceptors and decorators must be annotated with the @Dependent scope. Any other scope is invalid.",
                 DiagnosticSeverity.Error, "jakarta-cdi", "InvalidInterceptorOrDecorator",
                 createJsonArray("jakarta.enterprise.context.SessionScoped"));
 
-        // Line 95: Invalid decorator with multiple scopes - InvalidScopeDecl
-        Diagnostic decoratorMultiScopeDecl = d(95, 6, 40, "Scope type annotations must be specified by a managed bean class at most once.",
+        // Line 96: Invalid decorator with multiple scopes - InvalidScopeDecl
+        Diagnostic decoratorMultiScopeDecl = d(96, 6, 40, "Scope type annotations must be specified by a managed bean class at most once.",
                 DiagnosticSeverity.Error, "jakarta-cdi", "InvalidScopeDecl",
                 createJsonArray("jakarta.enterprise.context.ConversationScoped", "jakarta.enterprise.context.RequestScoped"));
 
-        // Line 95: Invalid decorator with multiple scopes - InvalidInterceptorOrDecorator
-        Diagnostic decoratorMultiScope = d(95, 6, 40, "Interceptors and decorators must be annotated with the @Dependent scope. Any other scope is invalid.",
+        // Line 96: Invalid decorator with multiple scopes - InvalidInterceptorOrDecorator
+        Diagnostic decoratorMultiScope = d(96, 6, 40, "Interceptors and decorators must be annotated with the @Dependent scope. Any other scope is invalid.",
                 DiagnosticSeverity.Error, "jakarta-cdi", "InvalidInterceptorOrDecorator",
                 createJsonArray("jakarta.enterprise.context.RequestScoped", "jakarta.enterprise.context.ConversationScoped"));
 
-        // Line 107: Invalid interceptor with custom normal scope
-        Diagnostic interceptorCustomScope = d(107, 6, 38, "Interceptors and decorators must be annotated with the @Dependent scope. Any other scope is invalid.",
+        // Line 108: Invalid interceptor with custom normal scope
+        Diagnostic interceptorCustomScope = d(108, 6, 38, "Interceptors and decorators must be annotated with the @Dependent scope. Any other scope is invalid.",
                 DiagnosticSeverity.Error, "jakarta-cdi", "InvalidInterceptorOrDecorator",
                 createJsonArray("io.openliberty.sample.jakarta.cdi.CustomNormalScope"));
 
-        // Line 113: Invalid decorator with custom normal scope
-        Diagnostic decoratorCustomScope = d(113, 6, 36, "Interceptors and decorators must be annotated with the @Dependent scope. Any other scope is invalid.",
+        // Line 114: Invalid decorator with custom normal scope
+        Diagnostic decoratorCustomScope = d(114, 6, 36, "Interceptors and decorators must be annotated with the @Dependent scope. Any other scope is invalid.",
                 DiagnosticSeverity.Error, "jakarta-cdi", "InvalidInterceptorOrDecorator",
                 createJsonArray("io.openliberty.sample.jakarta.cdi.CustomNormalScope"));
 
-        // Line 124: Invalid interceptor with mixed scopes
-        Diagnostic interceptorMixedScopes = d(124, 6, 32, "Interceptors and decorators must be annotated with the @Dependent scope. Any other scope is invalid.",
+        // Line 125: Invalid interceptor with mixed scopes
+        Diagnostic interceptorMixedScopes = d(125, 6, 32, "Interceptors and decorators must be annotated with the @Dependent scope. Any other scope is invalid.",
                 DiagnosticSeverity.Error, "jakarta-cdi", "InvalidInterceptorOrDecorator",
                 createJsonArray("jakarta.enterprise.context.ApplicationScoped", "io.openliberty.sample.jakarta.cdi.CustomNormalScope"));
 
-        // Line 131: Invalid decorator with mixed scopes
-        Diagnostic decoratorMixedScopes = d(131, 6, 30, "Interceptors and decorators must be annotated with the @Dependent scope. Any other scope is invalid.",
+        // Line 132: Invalid decorator with mixed scopes
+        Diagnostic decoratorMixedScopes = d(132, 6, 30, "Interceptors and decorators must be annotated with the @Dependent scope. Any other scope is invalid.",
                 DiagnosticSeverity.Error, "jakarta-cdi", "InvalidInterceptorOrDecorator",
                 createJsonArray("jakarta.enterprise.context.ApplicationScoped", "io.openliberty.sample.jakarta.cdi.CustomNormalScope"));
 
@@ -236,7 +236,7 @@ public class InterceptorDecoratorScopesTest extends BaseJakartaTest {
                 "    @Delegate\n" +
                 "    private AccountService delegate;\n" +
                 "}\n";
-        TextEdit replaceAppScopedEdit = te(0, 0, 136, 0, newText1);
+        TextEdit replaceAppScopedEdit = te(0, 0, 137, 0, newText1);
         CodeAction replaceAppScopedAction = ca(uri, "Replace @ApplicationScoped with @Dependent", interceptorAppScoped, replaceAppScopedEdit);
         assertJavaCodeAction(createCodeActionParams(uri, interceptorAppScoped), utils, replaceAppScopedAction);
 
@@ -355,7 +355,7 @@ public class InterceptorDecoratorScopesTest extends BaseJakartaTest {
                 "    @Delegate\n" +
                 "    private AccountService delegate;\n" +
                 "}\n";
-        TextEdit replaceMultipleScopesEdit = te(0, 0, 136, 0, newText2);
+        TextEdit replaceMultipleScopesEdit = te(0, 0, 137, 0, newText2);
         CodeAction replaceMultipleScopesAction = ca(uri, "Replace @ApplicationScoped and @SessionScoped with @Dependent", interceptorMultiScope, replaceMultipleScopesEdit);
         assertJavaCodeAction(createCodeActionParams(uri, interceptorMultiScope), utils, replaceMultipleScopesAction);
 
@@ -476,7 +476,7 @@ public class InterceptorDecoratorScopesTest extends BaseJakartaTest {
                 "    @Delegate\n" +
                 "    private AccountService delegate;\n" +
                 "}\n";
-        TextEdit replaceDecoratorAppScopedEdit = te(0, 0, 136, 0, newText3);
+        TextEdit replaceDecoratorAppScopedEdit = te(0, 0, 137, 0, newText3);
         CodeAction replaceDecoratorAppScopedAction = ca(uri, "Replace @ApplicationScoped with @Dependent", decoratorAppScoped, replaceDecoratorAppScopedEdit);
         assertJavaCodeAction(createCodeActionParams(uri, decoratorAppScoped), utils, replaceDecoratorAppScopedAction);
 
@@ -598,7 +598,7 @@ public class InterceptorDecoratorScopesTest extends BaseJakartaTest {
                 "    @Delegate\n" +
                 "    private AccountService delegate;\n" +
                 "}\n";
-        TextEdit replaceCustomScopeEdit = te(0, 0, 136, 0, newText4);
+        TextEdit replaceCustomScopeEdit = te(0, 0, 137, 0, newText4);
         CodeAction replaceCustomScopeAction = ca(uri, "Replace @CustomNormalScope with @Dependent", interceptorCustomScope, replaceCustomScopeEdit);
         assertJavaCodeAction(createCodeActionParams(uri, interceptorCustomScope), utils, replaceCustomScopeAction);
 
@@ -719,7 +719,7 @@ public class InterceptorDecoratorScopesTest extends BaseJakartaTest {
                 "    @Delegate\n" +
                 "    private AccountService delegate;\n" +
                 "}\n";
-        TextEdit replaceInterceptorSessionScopedEdit = te(0, 0, 136, 0, newText5);
+        TextEdit replaceInterceptorSessionScopedEdit = te(0, 0, 137, 0, newText5);
         CodeAction replaceInterceptorSessionScopedAction = ca(uri, "Replace @SessionScoped with @Dependent", interceptorSessionScoped, replaceInterceptorSessionScopedEdit);
         assertJavaCodeAction(createCodeActionParams(uri, interceptorSessionScoped), utils, replaceInterceptorSessionScopedAction);
 
@@ -840,7 +840,7 @@ public class InterceptorDecoratorScopesTest extends BaseJakartaTest {
                 "    @Delegate\n" +
                 "    private AccountService delegate;\n" +
                 "}\n";
-        TextEdit replaceDecoratorSessionScopedEdit = te(0, 0, 136, 0, newText6);
+        TextEdit replaceDecoratorSessionScopedEdit = te(0, 0, 137, 0, newText6);
         CodeAction replaceDecoratorSessionScopedAction = ca(uri, "Replace @SessionScoped with @Dependent", decoratorSessionScoped, replaceDecoratorSessionScopedEdit);
         assertJavaCodeAction(createCodeActionParams(uri, decoratorSessionScoped), utils, replaceDecoratorSessionScopedAction);
 
@@ -959,7 +959,7 @@ public class InterceptorDecoratorScopesTest extends BaseJakartaTest {
                 "    @Delegate\n" +
                 "    private AccountService delegate;\n" +
                 "}\n";
-        TextEdit replaceDecoratorMultipleScopesEdit = te(0, 0, 136, 0, newText7);
+        TextEdit replaceDecoratorMultipleScopesEdit = te(0, 0, 137, 0, newText7);
         CodeAction replaceDecoratorMultipleScopesAction = ca(uri, "Replace @RequestScoped and @ConversationScoped with @Dependent", decoratorMultiScope, replaceDecoratorMultipleScopesEdit);
         assertJavaCodeAction(createCodeActionParams(uri, decoratorMultiScope), utils, replaceDecoratorMultipleScopesAction);
 
@@ -1081,7 +1081,7 @@ public class InterceptorDecoratorScopesTest extends BaseJakartaTest {
                 "    @Delegate\n" +
                 "    private AccountService delegate;\n" +
                 "}\n";
-        TextEdit replaceDecoratorCustomScopeEdit = te(0, 0, 136, 0, newText8);
+        TextEdit replaceDecoratorCustomScopeEdit = te(0, 0, 137, 0, newText8);
         CodeAction replaceDecoratorCustomScopeAction = ca(uri, "Replace @CustomNormalScope with @Dependent", decoratorCustomScope, replaceDecoratorCustomScopeEdit);
         assertJavaCodeAction(createCodeActionParams(uri, decoratorCustomScope), utils, replaceDecoratorCustomScopeAction);
     }
