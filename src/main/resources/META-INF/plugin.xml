@@ -443,6 +443,15 @@
                                    targetDiagnostic="jakarta-persistence#InvalidValueInTemporalAnnotation"
                                    implementationClass="io.openliberty.tools.intellij.lsp4jakarta.lsp4ij.persistence.ChangeTemporalValueQuickFix"/>
 
+        <javaCodeActionParticipant kind="quickfix"
+                                   group="jakarta"
+                                   targetDiagnostic="jakarta-persistence#MultipleEmbeddedIdAnnotations"
+                                   implementationClass="io.openliberty.tools.intellij.lsp4jakarta.lsp4ij.persistence.RemoveAnnotationConflictForIdentifiersQuickFix"/>
+        <javaCodeActionParticipant kind="quickfix"
+                                   group="jakarta"
+                                   targetDiagnostic="jakarta-persistence#MixedIdentifierAnnotations"
+                                   implementationClass="io.openliberty.tools.intellij.lsp4jakarta.lsp4ij.persistence.RemoveAnnotationConflictForIdentifiersQuickFix"/>
+
         <!-- WebSocket -->
         <javaCodeActionParticipant kind="quickfix"
                                    group="jakarta"
@@ -620,6 +629,10 @@
                                    group="jakarta"
                                    targetDiagnostic="jakarta-cdi#InvalidNamedAnnotationOnNonFieldInjectionPoint"
                                    implementationClass="io.openliberty.tools.intellij.lsp4jakarta.lsp4ij.cdi.InsertNamedValueAttributeQuickFix"/>
+        <javaCodeActionParticipant kind="quickfix"
+                                   group="jakarta"
+                                   targetDiagnostic="jakarta-cdi#InvalidSpecializedBeanWithNamedAnnotation"
+                                   implementationClass="io.openliberty.tools.intellij.lsp4jakarta.lsp4ij.cdi.RemoveNamedFromSpecializedBeanQuickFix"/>
 
         <!-- Interceptor -->
         <javaCodeActionParticipant kind="quickfix"
@@ -653,6 +666,14 @@
                                    targetDiagnostic="jakarta-ejb#MissingPublicNoArgConstructor"
                                    implementationClass="io.openliberty.tools.intellij.lsp4jakarta.lsp4ij.ejb.InsertPublicNoArgConstructorQuickFix"/>
         <javaCodeActionParticipant kind="quickfix"
+                                   group="jakarta"
+                                   targetDiagnostic="jakarta-ejb#InvalidSessionBeanWithInterceptorOrDecorator"
+                                   implementationClass="io.openliberty.tools.intellij.lsp4jakarta.lsp4ij.ejb.RemoveInterceptorOrDecoratorQuickFix"/>
+        <javaCodeActionParticipant kind="quickfix"
+                                   group="jakarta"
+                                   targetDiagnostic="jakarta-ejb#InvalidSessionBeanWithInterceptorOrDecorator"
+                                   implementationClass="io.openliberty.tools.intellij.lsp4jakarta.lsp4ij.ejb.RemoveSessionBeanAnnotationQuickFix"/>
+      <javaCodeActionParticipant kind="quickfix"
                                    group="jakarta"
                                    targetDiagnostic="jakarta-ejb#SessionBeanFinalizeMethod"
                                    implementationClass="io.openliberty.tools.intellij.lsp4jakarta.lsp4ij.ejb.RemoveFinalizeMethodQuickFix"/>
