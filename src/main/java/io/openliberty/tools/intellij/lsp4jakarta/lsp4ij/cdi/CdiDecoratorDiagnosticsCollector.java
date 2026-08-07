@@ -22,6 +22,7 @@ import com.intellij.psi.*;
 import com.intellij.psi.util.InheritanceUtil;
 import io.openliberty.tools.intellij.lsp4jakarta.lsp4ij.AbstractDiagnosticsCollector;
 import io.openliberty.tools.intellij.lsp4jakarta.lsp4ij.Messages;
+import static io.openliberty.tools.intellij.lsp4jakarta.lsp4ij.JDTUtils.getSimpleName;
 import org.eclipse.lsp4j.Diagnostic;
 import org.eclipse.lsp4j.DiagnosticSeverity;
 
@@ -161,7 +162,7 @@ public class CdiDecoratorDiagnosticsCollector extends AbstractDiagnosticsCollect
             }
             // Primitives are never valid bean types — report immediately without further resolution.
             if (delegateType instanceof PsiPrimitiveType) {
-                reportDelegateTypeAssignabilityDiagnostic(delegateElement, unit, delegateType.getPresentableText(), diagnostics);
+                reportDelegateTypeAssignabilityDiagnostic(delegateElement, unit, delegateType.getPresentableText(), "", diagnostics);
                 return;
             }
             // Resolve the delegate type to a PsiClass
@@ -177,19 +178,16 @@ public class CdiDecoratorDiagnosticsCollector extends AbstractDiagnosticsCollect
             if (decoratedTypes.isEmpty()) {
                 // Decorator has no decorated types — the delegate type cannot satisfy
                 // "must implement or extend all decorated types" (CDI 3.0 §8.1.3)
-                reportDelegateTypeAssignabilityDiagnostic(delegateElement, unit, delegateClass.getName(), diagnostics);
+                reportDelegateTypeAssignabilityDiagnostic(delegateElement, unit, delegateClass.getName(), "", diagnostics);
                 return;
             }
             // Check if delegate type implements/extends all decorated types
-            List<String> missingTypes = new ArrayList<>();
             for (String decoratedTypeFQN : decoratedTypes) {
                 if (!InheritanceUtil.isInheritor(delegateClass, decoratedTypeFQN)) {
-                    missingTypes.add(decoratedTypeFQN);
+                    reportDelegateTypeAssignabilityDiagnostic(delegateElement, unit, delegateClass.getName(),
+                            getSimpleName(decoratedTypeFQN), diagnostics);
+                    return;
                 }
-            }
-            // Report diagnostic if delegate type doesn't implement all decorated types
-            if (!missingTypes.isEmpty()) {
-                reportDelegateTypeAssignabilityDiagnostic(delegateElement, unit, delegateClass.getName(), diagnostics);
             }
         } catch (Exception e) {
             LOGGER.log(Level.WARNING, "Exception during delegate type assignability validation", e);
@@ -205,8 +203,9 @@ public class CdiDecoratorDiagnosticsCollector extends AbstractDiagnosticsCollect
      * @param diagnostics      the list to add the diagnostic to
      */
     private void reportDelegateTypeAssignabilityDiagnostic(PsiElement delegateElement, PsiJavaFile unit,
-                                                           String delegateTypeName, List<Diagnostic> diagnostics) {
-        String message = Messages.getMessage("InvalidDecoratorDelegateTypeAssignability", delegateTypeName);
+                                                           String delegateTypeName, String decoratedTypeName,
+                                                           List<Diagnostic> diagnostics) {
+        String message = Messages.getMessage("InvalidDecoratorDelegateTypeAssignability", delegateTypeName, decoratedTypeName);
         diagnostics.add(createDiagnostic(delegateElement, unit, message,
                 ManagedBeanConstants.DIAGNOSTIC_CODE_INVALID_DECORATOR_DELEGATE_TYPE_ASSIGNABILITY,
                 null, DiagnosticSeverity.Error));
