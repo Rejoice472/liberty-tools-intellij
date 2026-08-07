@@ -64,7 +64,7 @@ public class CdiWildcardDiagnosticsCollector extends AbstractDiagnosticsCollecto
                 if (AnnotationUtils.hasAnnotation(field, INJECT_FQ_NAME)) {
                     if (containsWildcard(field.getType())) {
                         diagnostics.add(createDiagnostic(field, unit,
-                                Messages.getMessage("InvalidWildcardTypeInInjectField"),
+                                Messages.getMessage(DIAGNOSTIC_CODE_WILDCARD_INJECT),
                                 DIAGNOSTIC_CODE_WILDCARD_INJECT, null, DiagnosticSeverity.Error));
                     }
                 } else if (AnnotationUtils.hasAnnotation(field, PRODUCES_FQ_NAME)) {
@@ -74,10 +74,7 @@ public class CdiWildcardDiagnosticsCollector extends AbstractDiagnosticsCollecto
                             annotationNames, isGeneric, scopeFQNames,
                             new String[]{ DIAGNOSTIC_CODE_WILDCARD_PRODUCER_FIELD,
                                           DIAGNOSTIC_CODE_PRODUCER_FIELD_BARE_TYPE_VAR,
-                                          DIAGNOSTIC_CODE_PRODUCER_FIELD_TYPE_VAR_NON_DEPENDENT },
-                            new String[]{ "InvalidWildcardTypeInProducerField",
-                                          "InvalidProducerFieldWithBareTypeVariableType",
-                                          "InvalidProducerFieldWithTypeVariableAndNonDependentScope" });
+                                          DIAGNOSTIC_CODE_PRODUCER_FIELD_TYPE_VAR_NON_DEPENDENT });
                 }
             }
 
@@ -86,8 +83,8 @@ public class CdiWildcardDiagnosticsCollector extends AbstractDiagnosticsCollecto
                     for (PsiParameter param : method.getParameterList().getParameters()) {
                         if (containsWildcard(param.getType())) {
                             diagnostics.add(createDiagnostic(param, unit,
-                                    Messages.getMessage("InvalidWildcardTypeInInjectMethod"),
-                                    DIAGNOSTIC_CODE_WILDCARD_INJECT, null, DiagnosticSeverity.Error));
+                                    Messages.getMessage(DIAGNOSTIC_CODE_WILDCARD_INJECT_METHOD),
+                                    DIAGNOSTIC_CODE_WILDCARD_INJECT_METHOD, null, DiagnosticSeverity.Error));
                         }
                     }
                 } else if (AnnotationUtils.hasAnnotation(method, PRODUCES_FQ_NAME)) {
@@ -99,10 +96,7 @@ public class CdiWildcardDiagnosticsCollector extends AbstractDiagnosticsCollecto
                             annotationNames, isGeneric, scopeFQNames,
                             new String[]{ DIAGNOSTIC_CODE_WILDCARD_PRODUCER_METHOD,
                                           DIAGNOSTIC_CODE_PRODUCER_METHOD_BARE_TYPE_VAR,
-                                          DIAGNOSTIC_CODE_PRODUCER_METHOD_TYPE_VAR_NON_DEPENDENT },
-                            new String[]{ "InvalidWildcardTypeInProducerMethod",
-                                          "InvalidProducerMethodWithBareTypeVariableReturnType",
-                                          "InvalidProducerMethodWithTypeVariableAndNonDependentScope" });
+                                          DIAGNOSTIC_CODE_PRODUCER_METHOD_TYPE_VAR_NON_DEPENDENT });
                 }
             }
         }
@@ -111,18 +105,18 @@ public class CdiWildcardDiagnosticsCollector extends AbstractDiagnosticsCollecto
     /**
      * Applies the three CDI type-variable rules for a single {@code @Produces} member.
      *
-     * <p>{@code codes[0]} / {@code msgKeys[0]} — wildcard in type (always invalid)<br>
-     * {@code codes[1]} / {@code msgKeys[1]} — bare type variable or array of one (always invalid)<br>
-     * {@code codes[2]} / {@code msgKeys[2]} — parameterized type with type variable and
-     * non-{@code @Dependent} scope
+     * <p>{@code codes[0]} — wildcard in type (always invalid)<br>
+     * {@code codes[1]} — bare type variable or array of one (always invalid)<br>
+     * {@code codes[2]} — parameterized type with type variable and non-{@code @Dependent} scope;
+     * the message key for each is the code value itself (matches messages.properties keys)
      */
     private void checkProducerMember(PsiClass type, PsiElement element, PsiType psiType,
                                      PsiJavaFile unit, List<Diagnostic> diagnostics,
                                      String[] annotationNames, boolean isGeneric,
-                                     String[] scopeFQNames, String[] codes, String[] msgKeys) {
+                                     String[] scopeFQNames, String[] codes) {
         // Rule 0: wildcard in type — always a definition error
         if (containsWildcard(psiType)) {
-            diagnostics.add(createDiagnostic(element, unit, Messages.getMessage(msgKeys[0]),
+            diagnostics.add(createDiagnostic(element, unit, Messages.getMessage(codes[0]),
                     codes[0], null, DiagnosticSeverity.Error));
         }
 
@@ -132,7 +126,7 @@ public class CdiWildcardDiagnosticsCollector extends AbstractDiagnosticsCollecto
 
         // Rule 1: bare type variable (T or T[]) — always a definition error
         if (isBareTypeVariable(psiType)) {
-            diagnostics.add(createDiagnostic(element, unit, Messages.getMessage(msgKeys[1]),
+            diagnostics.add(createDiagnostic(element, unit, Messages.getMessage(codes[1]),
                     codes[1], null, DiagnosticSeverity.Error));
         }
         // Rule 2: parameterized type with type variable — requires @Dependent scope
@@ -140,7 +134,7 @@ public class CdiWildcardDiagnosticsCollector extends AbstractDiagnosticsCollecto
             boolean hasNonDependentScope = getMatchedJavaElementNames(type, annotationNames, scopeFQNames)
                     .stream().anyMatch(s -> !DEPENDENT_FQ_NAME.equals(s));
             if (hasNonDependentScope) {
-                diagnostics.add(createDiagnostic(element, unit, Messages.getMessage(msgKeys[2]),
+                diagnostics.add(createDiagnostic(element, unit, Messages.getMessage(codes[2]),
                         codes[2], null, DiagnosticSeverity.Error));
             }
         }

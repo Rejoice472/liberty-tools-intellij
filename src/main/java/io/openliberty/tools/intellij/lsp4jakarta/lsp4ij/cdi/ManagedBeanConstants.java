@@ -61,6 +61,7 @@ public class ManagedBeanConstants {
     public static final String DIAGNOSTIC_CODE_INTERCEPTOR_DECORATOR_ILLEGAL_SCOPE = "InvalidInterceptorOrDecorator";
     public static final String DIAGNOSTIC_CODE_REDUNDANT_DISPOSES = "RemoveExtraDisposes";
     public static final String DIAGNOSTIC_CODE_WILDCARD_INJECT = "InvalidWildcardTypeInInjectField";
+    public static final String DIAGNOSTIC_CODE_WILDCARD_INJECT_METHOD = "InvalidWildcardTypeInInjectMethod";
     public static final String DIAGNOSTIC_CODE_WILDCARD_PRODUCER_FIELD = "InvalidWildcardTypeInProducerField";
     public static final String DIAGNOSTIC_CODE_WILDCARD_PRODUCER_METHOD = "InvalidWildcardTypeInProducerMethod";
     public static final String DIAGNOSTIC_CODE_PRODUCER_METHOD_BARE_TYPE_VAR = "InvalidProducerMethodWithBareTypeVariableReturnType";
