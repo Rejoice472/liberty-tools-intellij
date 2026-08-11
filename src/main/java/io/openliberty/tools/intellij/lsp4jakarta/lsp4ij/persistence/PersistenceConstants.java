@@ -75,6 +75,12 @@ public class PersistenceConstants {
     public static final String DIAGNOSTIC_CODE_INVALID_TYPE = "InvalidTypeOfField";
     public static final String DIAGNOSTIC_CODE_INVALID_MAPKEYTEMPORAL_TYPE = "MapKeyTemporalNotOnTemporalType";
 
+    /* PersistenceContext Codes */
+    public static final String PERSISTENCE_CONTEXT = "jakarta.persistence.PersistenceContext";
+    public static final String PERSISTENCE_CONTEXT_TYPE_EXTENDED = "PersistenceContextType.EXTENDED";
+    public static final String DIAGNOSTIC_CODE_PERSISTENCE_CONTEXT_NOT_IN_MANAGED_COMPONENT = "PersistenceContextNotInManagedComponent";
+    public static final String DIAGNOSTIC_CODE_EXTENDED_CONTEXT_IN_NON_STATEFUL = "ExtendedPersistenceContextInNonStatefulBean";
+
     public final static String[] SET_OF_PERSISTENCE_ANNOTATIONS = {MAPKEY, MAPKEYCLASS, MAPKEYJOINCOLUMN, MAPKEYENUMERATED};
     public static final String[] SET_OF_PRIMARY_KEY_DATE_ANNOTATIONS = { ID, TEMPORAL };
     public static final Set<String> SET_OF_VALID_VERSION_TYPES = Set.of(
@@ -103,4 +109,6 @@ public class PersistenceConstants {
     public static final String UTIL_DATE = "java.util.Date";
     public static final String UTIL_CALENDAR = "java.util.Calendar";
     public static final String TEMPORAL_TYPE_DATE = "TemporalType.DATE";
+
+    public static final String HTTP_SERVLET_FQ_NAME = "jakarta.servlet.http.HttpServlet";
 }
