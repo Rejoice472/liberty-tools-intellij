@@ -162,7 +162,10 @@ public class CdiDecoratorDiagnosticsCollector extends AbstractDiagnosticsCollect
             }
             // Primitives are never valid bean types — report immediately without further resolution.
             if (delegateType instanceof PsiPrimitiveType) {
-                reportDelegateTypeAssignabilityDiagnostic(delegateElement, unit, delegateType.getPresentableText(), "", diagnostics);
+                reportDecoratorDiagnostic(delegateElement, unit, "InvalidDecoratorDelegateTypeAssignability",
+                        delegateType.getPresentableText(), "",
+                        ManagedBeanConstants.DIAGNOSTIC_CODE_INVALID_DECORATOR_DELEGATE_TYPE_ASSIGNABILITY,
+                        diagnostics);
                 return;
             }
             // Resolve the delegate type to a PsiClass
@@ -176,16 +179,19 @@ public class CdiDecoratorDiagnosticsCollector extends AbstractDiagnosticsCollect
             // Get all decorated types (interfaces and superclasses of the decorator)
             List<String> decoratedTypes = getDecoratedTypes(decoratorType);
             if (decoratedTypes.isEmpty()) {
-                // Decorator has no decorated types — the delegate type cannot satisfy
-                // "must implement or extend all decorated types" (CDI 3.0 §8.1.3)
-                reportDelegateTypeAssignabilityDiagnostic(delegateElement, unit, delegateClass.getName(), "", diagnostics);
+                // Decorator has no decorated types — definition error per CDI 3.0 §8.1.3
+                reportDecoratorDiagnostic(delegateElement, unit, "InvalidDecoratorWithNoDecoratedTypes",
+                        null, null, ManagedBeanConstants.DIAGNOSTIC_CODE_INVALID_DECORATOR_WITH_NO_DECORATED_TYPES,
+                        diagnostics);
                 return;
             }
             // Check if delegate type implements/extends all decorated types
             for (String decoratedTypeFQN : decoratedTypes) {
                 if (!InheritanceUtil.isInheritor(delegateClass, decoratedTypeFQN)) {
-                    reportDelegateTypeAssignabilityDiagnostic(delegateElement, unit, delegateClass.getName(),
-                            getSimpleName(decoratedTypeFQN), diagnostics);
+                    reportDecoratorDiagnostic(delegateElement, unit, "InvalidDecoratorDelegateTypeAssignability",
+                            delegateClass.getName(), getSimpleName(decoratedTypeFQN),
+                            ManagedBeanConstants.DIAGNOSTIC_CODE_INVALID_DECORATOR_DELEGATE_TYPE_ASSIGNABILITY,
+                            diagnostics);
                     return;
                 }
             }
@@ -195,52 +201,73 @@ public class CdiDecoratorDiagnosticsCollector extends AbstractDiagnosticsCollect
     }
 
     /**
-     * Reports an {@code InvalidDecoratorDelegateTypeAssignability} diagnostic on the given delegate element.
+     * Reports a decorator validation diagnostic on the given delegate element.
      *
      * @param delegateElement  the delegate injection point (field or parameter)
      * @param unit             the compilation unit
-     * @param delegateTypeName the simple name of the delegate type (used in the message)
+     * @param messageKey       the message key (e.g., "InvalidDecoratorDelegateTypeAssignability")
+     * @param delegateTypeName the simple name of the delegate type (may be null)
+     * @param decoratedTypeName the simple name of the decorated type (may be null or empty)
      * @param diagnostics      the list to add the diagnostic to
      */
-    private void reportDelegateTypeAssignabilityDiagnostic(PsiElement delegateElement, PsiJavaFile unit,
-                                                           String delegateTypeName, String decoratedTypeName,
-                                                           List<Diagnostic> diagnostics) {
-        String message = Messages.getMessage("InvalidDecoratorDelegateTypeAssignability", delegateTypeName, decoratedTypeName);
-        diagnostics.add(createDiagnostic(delegateElement, unit, message,
-                ManagedBeanConstants.DIAGNOSTIC_CODE_INVALID_DECORATOR_DELEGATE_TYPE_ASSIGNABILITY,
+    private void reportDecoratorDiagnostic(PsiElement delegateElement, PsiJavaFile unit,
+                                           String messageKey, String delegateTypeName, String decoratedTypeName,
+                                           String errorCode, List<Diagnostic> diagnostics) {
+        String message = Messages.getMessage(messageKey, delegateTypeName, decoratedTypeName);
+        diagnostics.add(createDiagnostic(delegateElement, unit, message, errorCode,
                 null, DiagnosticSeverity.Error));
     }
 
     /**
-     * Gets all decorated types of the decorator (interfaces and superclasses, excluding Object).
+     * Gets all decorated types of the decorator (Java interfaces only, excluding java.io.Serializable).
+     *
+     * Per CDI 3.0 specification section 8.1.3:
+     * "The set of decorated types of a decorator includes all bean types of the managed bean
+     * which are Java interfaces, except for java.io.Serializable. The decorator bean class and
+     * its superclasses are not decorated types of the decorator."
      *
      * @param decoratorType the decorator class
-     * @return list of decorated type fully qualified names
+     * @return list of decorated type fully qualified names (interfaces only)
      */
     private List<String> getDecoratedTypes(PsiClass decoratorType) {
         List<String> decoratedTypes = new ArrayList<>();
 
-        // Get all interfaces implemented by the decorator
-        PsiClass[] interfaces = decoratorType.getInterfaces();
-        for (PsiClass interfaceClass : interfaces) {
-            if (interfaceClass != null) {
-                String fqName = interfaceClass.getQualifiedName();
-                if (fqName != null) {
-                    decoratedTypes.add(fqName);
-                }
-            }
-        }
-
-        // Get superclass (excluding java.lang.Object)
-        PsiClass superClass = decoratorType.getSuperClass();
-        if (superClass != null) {
-            String fqName = superClass.getQualifiedName();
-            if (fqName != null && !ManagedBeanConstants.OBJECT_FQ_NAME.equals(fqName)) {
-                decoratedTypes.add(fqName);
-            }
-        }
+        // Get all interfaces implemented by the decorator and its superclasses (transitively)
+        // Use InheritanceUtil to check if type is inheritor of each interface found
+        collectAllInterfaces(decoratorType, decoratedTypes);
 
         return decoratedTypes;
+    }
+
+    /**
+     * Recursively collects all interfaces implemented by a type and its superclasses.
+     *
+     * @param type the type to inspect
+     * @param decoratedTypes the list to accumulate interface types
+     */
+    private void collectAllInterfaces(PsiClass type, List<String> decoratedTypes) {
+        if (type == null) {
+            return;
+        }
+
+        // Collect directly implemented interfaces
+        for (PsiClass interfaceClass : type.getInterfaces()) {
+            if (interfaceClass != null) {
+                String fqName = interfaceClass.getQualifiedName();
+                if (fqName != null && !ManagedBeanConstants.SERIALIZABLE_FQ_NAME.equals(fqName)
+                        && !decoratedTypes.contains(fqName)) {
+                    decoratedTypes.add(fqName);
+                }
+                // Also collect interfaces that this interface extends
+                collectAllInterfaces(interfaceClass, decoratedTypes);
+            }
+        }
+
+        // Recursively collect interfaces from superclass
+        PsiClass superClass = type.getSuperClass();
+        if (superClass != null && !ManagedBeanConstants.OBJECT_FQ_NAME.equals(superClass.getQualifiedName())) {
+            collectAllInterfaces(superClass, decoratedTypes);
+        }
     }
 
     /**

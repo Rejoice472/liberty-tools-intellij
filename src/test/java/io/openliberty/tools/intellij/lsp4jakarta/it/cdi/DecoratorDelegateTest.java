@@ -470,10 +470,10 @@ public class DecoratorDelegateTest extends BaseJakartaTest {
         // Expected diagnostic on DecoratorWithDelegateButNoDecoratedTypes class (field-level)
         // Line 160 (0-based: 159), field name "delegate" starts at column 27, ends at column 35
         Diagnostic invalidTypeDiagnostic5 = d(159, 27, 35,
-                "Delegate type 'PaymentService' does not implement the decorated type ''. A delegate must implement or extend the decorated type(s).",
+                "Decorator has no decorated types. A decorator must implement at least one interface (other than java.io.Serializable).",
                 DiagnosticSeverity.Error,
                 "jakarta-cdi",
-                "InvalidDecoratorDelegateTypeAssignability");
+                "InvalidDecoratorWithNoDecoratedTypes");
 
         assertJavaDiagnostics(diagnosticsParams, utils, invalidTypeDiagnostic1, invalidTypeDiagnostic2,
                 invalidTypeDiagnostic3, invalidTypeDiagnostic4, invalidTypeDiagnostic5);

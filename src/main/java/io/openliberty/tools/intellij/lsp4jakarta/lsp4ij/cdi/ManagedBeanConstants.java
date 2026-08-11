@@ -36,6 +36,7 @@ public class ManagedBeanConstants {
     public static final String DELEGATE_FQ_NAME = "jakarta.decorator.Delegate";
     public static final String OBJECT_FQ_NAME = "java.lang.Object";
     public static final String OBJECT_CLASS_NAME = "Object";
+    public static final String SERIALIZABLE_FQ_NAME = "java.io.Serializable";
 
     public static final String DIAGNOSTIC_SOURCE = "jakarta-cdi";
     public static final String DIAGNOSTIC_CODE = "InvalidManagedBeanAnnotation";
@@ -59,6 +60,7 @@ public class ManagedBeanConstants {
     public static final String DIAGNOSTIC_CODE_INVALID_DECORATOR_DELEGATE = "InvalidDecoratorDelegateInjectionPoints";
     public static final String DIAGNOSTIC_CODE_INVALID_DELEGATE_INJECTION_POINT = "InvalidDelegateInjectionPoint";
     public static final String DIAGNOSTIC_CODE_INVALID_DECORATOR_DELEGATE_TYPE_ASSIGNABILITY = "InvalidDecoratorDelegateTypeAssignability";
+    public static final String DIAGNOSTIC_CODE_INVALID_DECORATOR_WITH_NO_DECORATED_TYPES = "InvalidDecoratorWithNoDecoratedTypes";
     public static final String DIAGNOSTIC_CODE_DEPENDENT_CONDITIONAL_OBSERVER = "InvalidDependentScopeWithConditionalObserver";
     public static final String DIAGNOSTIC_MULTIPLE_OBSERVER_PARAMS = "InvalidMultipleObserverParams";
     public static final String DIAGNOSTIC_CODE_INTERCEPTOR_DECORATOR_ILLEGAL_SCOPE = "InvalidInterceptorOrDecorator";
