@@ -17,6 +17,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 import com.intellij.psi.*;
 import com.intellij.psi.util.InheritanceUtil;
@@ -143,12 +144,12 @@ public class CdiDecoratorDiagnosticsCollector extends AbstractDiagnosticsCollect
      * or extend a decorated type of the decorator (or specifies different type parameters),
      * the container automatically detects the problem and treats it as a definition error."
      *
-     * @param decoratorType   the decorator class
+     * @param decoratorClass   the decorator class
      * @param delegateElement the delegate injection point (field or parameter)
      * @param unit            the compilation unit
      * @param diagnostics     the list to add diagnostics to
      */
-    private void validateDelegateTypeAssignability(PsiClass decoratorType, PsiElement delegateElement,
+    private void validateDelegateTypeAssignability(PsiClass decoratorClass, PsiElement delegateElement,
                                                    PsiJavaFile unit, List<Diagnostic> diagnostics) {
         try {
             PsiType delegateType = null;
@@ -177,7 +178,7 @@ public class CdiDecoratorDiagnosticsCollector extends AbstractDiagnosticsCollect
                 return; // Cannot resolve delegate type, skip validation
             }
             // Get all decorated types (interfaces and superclasses of the decorator)
-            List<String> decoratedTypes = getDecoratedTypes(decoratorType);
+            List<String> decoratedTypes = getDecoratedTypes(decoratorClass);
             if (decoratedTypes.isEmpty()) {
                 // Decorator has no decorated types — definition error per CDI 3.0 §8.1.3
                 reportDecoratorDiagnostic(delegateElement, unit, "InvalidDecoratorWithNoDecoratedTypes",
@@ -226,48 +227,16 @@ public class CdiDecoratorDiagnosticsCollector extends AbstractDiagnosticsCollect
      * which are Java interfaces, except for java.io.Serializable. The decorator bean class and
      * its superclasses are not decorated types of the decorator."
      *
-     * @param decoratorType the decorator class
+     * @param decoratorClass the decorator class
      * @return list of decorated type fully qualified names (interfaces only)
      */
-    private List<String> getDecoratedTypes(PsiClass decoratorType) {
-        List<String> decoratedTypes = new ArrayList<>();
-
-        // Get all interfaces implemented by the decorator and its superclasses (transitively)
-        // Use InheritanceUtil to check if type is inheritor of each interface found
-        collectAllInterfaces(decoratorType, decoratedTypes);
-
-        return decoratedTypes;
-    }
-
-    /**
-     * Recursively collects all interfaces implemented by a type and its superclasses.
-     *
-     * @param type the type to inspect
-     * @param decoratedTypes the list to accumulate interface types
-     */
-    private void collectAllInterfaces(PsiClass type, List<String> decoratedTypes) {
-        if (type == null) {
-            return;
-        }
-
-        // Collect directly implemented interfaces
-        for (PsiClass interfaceClass : type.getInterfaces()) {
-            if (interfaceClass != null) {
-                String fqName = interfaceClass.getQualifiedName();
-                if (fqName != null && !ManagedBeanConstants.SERIALIZABLE_FQ_NAME.equals(fqName)
-                        && !decoratedTypes.contains(fqName)) {
-                    decoratedTypes.add(fqName);
-                }
-                // Also collect interfaces that this interface extends
-                collectAllInterfaces(interfaceClass, decoratedTypes);
-            }
-        }
-
-        // Recursively collect interfaces from superclass
-        PsiClass superClass = type.getSuperClass();
-        if (superClass != null && !ManagedBeanConstants.OBJECT_FQ_NAME.equals(superClass.getQualifiedName())) {
-            collectAllInterfaces(superClass, decoratedTypes);
-        }
+    private List<String> getDecoratedTypes(PsiClass decoratorClass) {
+        return InheritanceUtil.getSuperClasses(decoratorClass).stream()
+                .filter(PsiClass::isInterface)
+                .map(PsiClass::getQualifiedName)
+                .filter(fqn -> fqn != null && !ManagedBeanConstants.SERIALIZABLE_FQ_NAME.equals(fqn))
+                .distinct()
+                .collect(Collectors.toList());
     }
 
     /**
