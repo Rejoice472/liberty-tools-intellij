@@ -50,6 +50,10 @@ public class EjbConstants {
     public static final String DIAGNOSTIC_CODE_INVALID_SESSION_SYNC_FINAL = "InvalidSessionSyncMethodFinal";
     public static final String DIAGNOSTIC_CODE_INVALID_SESSION_SYNC_STATIC = "InvalidSessionSyncMethodStatic";
     public static final String DIAGNOSTIC_CODE_INVALID_SESSION_SYNC_NON_VOID = "InvalidSessionSyncMethodNonVoid";
+    public static final String DIAGNOSTIC_CODE_NOT_PUBLIC_CLASS = "InvalidModifierNotPublic";
+    public static final String DIAGNOSTIC_CODE_IS_FINAL_CLASS = "InvalidModifierFinal";
+    public static final String DIAGNOSTIC_CODE_IS_ABSTRACT_CLASS = "InvalidModifierAbstract";
+    public static final String DIAGNOSTIC_CODE_NON_TOP_LEVEL_CLASS = "InvalidNonTopLevelClass";
     public static final String DIAGNOSTIC_CODE_SESSION_BEAN_INTERCEPTOR_DECORATOR = "InvalidSessionBeanWithInterceptorOrDecorator";
     public static final String DIAGNOSTIC_CODE_FINALIZE_METHOD = "SessionBeanFinalizeMethod";
     public static final String DIAGNOSTIC_CODE_CONFLICTING_ANNOTATIONS = "ConflictingSessionBeanAnnotations";
