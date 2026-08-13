@@ -22,6 +22,7 @@ import java.util.stream.Stream;
 import com.intellij.codeInsight.AnnotationUtil;
 import com.intellij.psi.*;
 import io.openliberty.tools.intellij.lsp4jakarta.lsp4ij.AbstractDiagnosticsCollector;
+import io.openliberty.tools.intellij.lsp4jakarta.lsp4ij.DiagnosticsUtils;
 import io.openliberty.tools.intellij.lsp4jakarta.lsp4ij.Messages;
 import io.openliberty.tools.intellij.lsp4jakarta.lsp4ij.util.PsiUtils;
 import io.openliberty.tools.intellij.lsp4mp4ij.psi.core.utils.AnnotationUtils;
@@ -34,7 +35,7 @@ import com.google.gson.JsonArray;
 import static io.openliberty.tools.intellij.lsp4jakarta.lsp4ij.JDTUtils.getSimpleName;
 import static io.openliberty.tools.intellij.lsp4jakarta.lsp4ij.cdi.ManagedBeanConstants.*;
 
-public class ManagedBeanDiagnosticsCollector extends AbstractDiagnosticsCollector {
+    public class ManagedBeanDiagnosticsCollector extends AbstractDiagnosticsCollector {
 
     private static final Logger LOGGER = Logger.getLogger(ManagedBeanDiagnosticsCollector.class.getName());
 
@@ -356,12 +357,26 @@ public class ManagedBeanDiagnosticsCollector extends AbstractDiagnosticsCollecto
             /**
              * If a managed bean class is of generic type, it must be annotated with @Dependent
              */
+            boolean isStateless = !getMatchedJavaElementNames(type, Stream.of(typeAnnotations)
+                    .map(PsiAnnotation::getQualifiedName).toArray(String[]::new),
+                    new String[]{STATELESS_FQ_NAME}).isEmpty();
+            boolean isSingleton = Stream.of(typeAnnotations)
+                    .anyMatch(annotation -> isMatchedJavaElement(type, annotation.getQualifiedName(), SINGLETON_FQ_NAME));
+            boolean isClassGeneric = type.getTypeParameters().length != 0;
+
             if (isManagedBean) {
-                validateSingletonSessionBean(unit, diagnostics, type, managedBeanAnnotations);
-                boolean isStateless = !getMatchedJavaElementNames(type, Stream.of(typeAnnotations)
-                                .map(PsiAnnotation::getQualifiedName).toArray(String[]::new),
-                        new String[]{STATELESS_FQ_NAME}).isEmpty();
-                boolean isClassGeneric = type.getTypeParameters().length != 0;
+                if (isSingleton) {
+                    boolean hasInvalidSingletonScope = managedBeanAnnotations.stream()
+                            .anyMatch(annotation -> !APPLICATION_SCOPED_FQ_NAME.equals(annotation)
+                                    && !DEPENDENT_FQ_NAME.equals(annotation));
+                    if (hasInvalidSingletonScope) {
+                        diagnostics.add(createDiagnostic(type, unit,
+                                Messages.getMessage("SingletonSessionBeanInvalidScope"),
+                                DIAGNOSTIC_CODE_INVALID_SINGLETON_SCOPE,
+                                new Gson().toJsonTree(managedBeanAnnotations),
+                                DiagnosticSeverity.Error));
+                    }
+                }
                 if (isClassGeneric && (!isDependent || hasMultipleScopes)) {
                     diagnostics.add(createDiagnostic(type, unit, Messages.getMessage("ManagedBeanGenericType"),
                             DIAGNOSTIC_CODE, null, DiagnosticSeverity.Error));
@@ -385,6 +400,21 @@ public class ManagedBeanDiagnosticsCollector extends AbstractDiagnosticsCollecto
                             DIAGNOSTIC_CODE_SCOPEDECL, new Gson().toJsonTree(managedBeanAnnotations),
                             DiagnosticSeverity.Error));
                 }
+            }
+
+            // A @Singleton or @Stateless class with no declared scope may still inherit an invalid
+            // scope from a superclass via @Inherited CDI scope annotations. Check these cases
+            // independently of isManagedBean because isManagedBean is false when no scope is
+            // declared directly on the class.
+            if (isSingleton && !isManagedBean) {
+                validateSessionBeanInheritedScope(unit, diagnostics, type,
+                        new String[]{APPLICATION_SCOPED_FQ_NAME, DEPENDENT_FQ_NAME},
+                        "SingletonSessionBeanInvalidScope", DIAGNOSTIC_CODE_INVALID_SINGLETON_SCOPE);
+            }
+            if (isStateless && !isManagedBean) {
+                validateSessionBeanInheritedScope(unit, diagnostics, type,
+                        new String[]{DEPENDENT_FQ_NAME},
+                        "StatelessSessionBeanWithIllegalScope", DIAGNOSTIC_CODE_STATELESS_ILLEGAL_SCOPE);
             }
 
             /*
@@ -473,30 +503,45 @@ public class ManagedBeanDiagnosticsCollector extends AbstractDiagnosticsCollecto
     }
 
     /**
-     * validateSingletonSessionBean
-     * Singleton session bean scope validation
-     * A singleton session bean must be annotated with either @ApplicationScoped or @Dependent.
-     * If a singleton bean declares any other scope, the container must treat it as a definition error.
+     * Checks whether a session bean class (@Singleton or @Stateless) with no directly declared scope
+     * inherits an invalid CDI scope from a superclass. The Java @Inherited meta-annotation causes CDI
+     * scope annotations to propagate through class inheritance only (not interface implementation), so
+     * this method walks the superclass chain one level at a time to find the nearest ancestor that
+     * declares a CDI scope. If that inherited scope is not one of the allowed scopes for the bean type,
+     * a diagnostic is raised.
      *
-     * @param unit
-     * @param diagnostics
-     * @param type
-     * @param managedBeanAnnotations
+     * @param unit        the PSI Java file containing the class
+     * @param diagnostics the list to add diagnostic errors to
+     * @param type        the session bean class with no directly declared scope
+     * @param validScopes the FQ scope names that are valid for this bean type
+     * @param messageKey  the Messages key for the diagnostic message
+     * @param errorCode   the diagnostic error code
      */
-    private void validateSingletonSessionBean(PsiJavaFile unit, List<Diagnostic> diagnostics, PsiClass type, List<String> managedBeanAnnotations) {
-        boolean isSingletonSessionBean = Stream.of(type.getAnnotations())
-                .anyMatch(annotation -> isMatchedJavaElement(type, annotation.getQualifiedName(), SINGLETON_FQ_NAME));
-        if (isSingletonSessionBean) {
-            boolean hasInvalidSingletonScope = managedBeanAnnotations.stream()
-                    .anyMatch(annotation -> !APPLICATION_SCOPED_FQ_NAME.equals(annotation)
-                            && !DEPENDENT_FQ_NAME.equals(annotation));
-            if (hasInvalidSingletonScope) {
-                diagnostics.add(createDiagnostic(type, unit,
-                        Messages.getMessage("SingletonSessionBeanInvalidScope"),
-                        DIAGNOSTIC_CODE_INVALID_SINGLETON_SCOPE,
-                        new Gson().toJsonTree(managedBeanAnnotations),
-                        DiagnosticSeverity.Error));
+    private void validateSessionBeanInheritedScope(PsiJavaFile unit, List<Diagnostic> diagnostics, PsiClass type,
+                                                   String[] validScopes, String messageKey, String errorCode) {
+        String[] scopeFQNamesArray = SCOPE_FQ_NAMES.toArray(String[]::new);
+        PsiClass superClass = type.getSuperClass();
+        while (superClass != null && !CommonClassNames.JAVA_LANG_OBJECT.equals(superClass.getQualifiedName())) {
+            // Collect the FQ names of all annotations on this superclass.
+            String[] superAnnotationNames = Stream.of(superClass.getAnnotations())
+                    .map(PsiAnnotation::getQualifiedName)
+                    .toArray(String[]::new);
+            // Find any CDI scope annotation declared directly on this superclass.
+            List<String> superScopes = getMatchedJavaElementNames(superClass, superAnnotationNames, scopeFQNamesArray);
+            if (!superScopes.isEmpty()) {
+                // Found the nearest ancestor scope — check if it is valid for this bean type.
+                String inheritedScope = superScopes.getFirst();
+                boolean isValidScope = Arrays.asList(validScopes).contains(inheritedScope);
+                if (!isValidScope) {
+                    JsonArray data = new JsonArray();
+                    data.add(inheritedScope);
+                    diagnostics.add(createDiagnostic(type, unit,
+                            Messages.getMessage(messageKey),
+                            errorCode, data, DiagnosticSeverity.Error));
+                }
+                return;
             }
+            superClass = superClass.getSuperClass();
         }
     }
 
