@@ -146,6 +146,14 @@ public class CdiWildcardDiagnosticsCollector extends AbstractDiagnosticsCollecto
      *
      * <p>PSI resolves type arguments fully, so a bare type parameter always resolves to a
      * {@link PsiTypeParameter} — no name comparison needed.
+     *
+     * <p>Examples (assuming the enclosing class declares {@code <T>}):
+     * <ul>
+     * <li>{@code T} (bare type variable) — returns {@code true}</li>
+     * <li>{@code T[]} (array of type variable) — returns {@code true}</li>
+     * <li>{@code List<T>} (parameterized, not bare) — returns {@code false}</li>
+     * <li>{@code String} (concrete type) — returns {@code false}</li>
+     * </ul>
      */
     private boolean isBareTypeVariable(PsiType psiType) {
         if (psiType instanceof PsiClassType) {
@@ -160,6 +168,15 @@ public class CdiWildcardDiagnosticsCollector extends AbstractDiagnosticsCollecto
     /**
      * Returns {@code true} if {@code psiType} is a parameterized type that contains at
      * least one type variable in its type arguments (recursively).
+     *
+     * <p>Examples (assuming the enclosing class declares {@code <T>}):
+     * <ul>
+     * <li>{@code List<T>} — returns {@code true}</li>
+     * <li>{@code Map<String, T>} — returns {@code true}</li>
+     * <li>{@code List<Set<T>>} (nested) — returns {@code true}</li>
+     * <li>{@code T} (bare type variable, not parameterized) — returns {@code false}</li>
+     * <li>{@code List<String>} (concrete type argument) — returns {@code false}</li>
+     * </ul>
      */
     private boolean containsTypeVariable(PsiType psiType) {
         if (psiType instanceof PsiClassType) {
@@ -175,6 +192,16 @@ public class CdiWildcardDiagnosticsCollector extends AbstractDiagnosticsCollecto
     /**
      * Returns {@code true} if {@code type} contains a wildcard ({@code ?},
      * {@code ? extends}, or {@code ? super}) anywhere in the type tree.
+     *
+     * <p>Examples:
+     * <ul>
+     * <li>{@code List<?>} — returns {@code true}</li>
+     * <li>{@code List<? extends Number>} — returns {@code true}</li>
+     * <li>{@code List<? super Number>} — returns {@code true}</li>
+     * <li>{@code Map<String, ? extends Number>} — returns {@code true}</li>
+     * <li>{@code List<?>[] } (array of {@code List<?>}) — returns {@code true}</li>
+     * <li>{@code List<String>} — returns {@code false}</li>
+     * </ul>
      */
     private boolean containsWildcard(PsiType type) {
         if (type instanceof PsiWildcardType) {
