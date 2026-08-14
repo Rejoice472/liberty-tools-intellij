@@ -22,7 +22,6 @@ import java.util.stream.Stream;
 import com.intellij.codeInsight.AnnotationUtil;
 import com.intellij.psi.*;
 import io.openliberty.tools.intellij.lsp4jakarta.lsp4ij.AbstractDiagnosticsCollector;
-import io.openliberty.tools.intellij.lsp4jakarta.lsp4ij.DiagnosticsUtils;
 import io.openliberty.tools.intellij.lsp4jakarta.lsp4ij.Messages;
 import io.openliberty.tools.intellij.lsp4jakarta.lsp4ij.util.PsiUtils;
 import io.openliberty.tools.intellij.lsp4mp4ij.psi.core.utils.AnnotationUtils;
@@ -35,7 +34,7 @@ import com.google.gson.JsonArray;
 import static io.openliberty.tools.intellij.lsp4jakarta.lsp4ij.JDTUtils.getSimpleName;
 import static io.openliberty.tools.intellij.lsp4jakarta.lsp4ij.cdi.ManagedBeanConstants.*;
 
-    public class ManagedBeanDiagnosticsCollector extends AbstractDiagnosticsCollector {
+public class ManagedBeanDiagnosticsCollector extends AbstractDiagnosticsCollector {
 
     private static final Logger LOGGER = Logger.getLogger(ManagedBeanDiagnosticsCollector.class.getName());
 
@@ -357,11 +356,8 @@ import static io.openliberty.tools.intellij.lsp4jakarta.lsp4ij.cdi.ManagedBeanCo
             /**
              * If a managed bean class is of generic type, it must be annotated with @Dependent
              */
-            boolean isStateless = !getMatchedJavaElementNames(type, Stream.of(typeAnnotations)
-                    .map(PsiAnnotation::getQualifiedName).toArray(String[]::new),
-                    new String[]{STATELESS_FQ_NAME}).isEmpty();
-            boolean isSingleton = Stream.of(typeAnnotations)
-                    .anyMatch(annotation -> isMatchedJavaElement(type, annotation.getQualifiedName(), SINGLETON_FQ_NAME));
+            boolean isStateless = isMatchedAnnotation(typeAnnotations, STATELESS_FQ_NAME);
+            boolean isSingleton = isMatchedAnnotation(typeAnnotations, SINGLETON_FQ_NAME);
             boolean isClassGeneric = type.getTypeParameters().length != 0;
 
             if (isManagedBean) {
