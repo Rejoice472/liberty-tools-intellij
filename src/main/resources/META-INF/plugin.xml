@@ -715,6 +715,8 @@
                                    group="jakarta"
                                    targetDiagnostic="jakarta-ejb#InvalidSessionSyncMethodNonVoid"
                                    implementationClass="io.openliberty.tools.intellij.lsp4jakarta.lsp4ij.codeAction.proposal.quickfix.ChangeReturnTypeToVoidQuickFix"/>
+        <javaCodeActionParticipant kind="quickfix"
+                                   group="jakarta"
                                    targetDiagnostic="jakarta-ejb#InvalidSessionSyncMethodNoParamAnnotation"
                                    implementationClass="io.openliberty.tools.intellij.lsp4jakarta.lsp4ij.codeAction.proposal.quickfix.RemoveMethodParametersQuickFix"/>
         <javaCodeActionParticipant kind="quickfix"
