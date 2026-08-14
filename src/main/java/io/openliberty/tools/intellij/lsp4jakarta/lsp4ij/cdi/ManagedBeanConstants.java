@@ -32,6 +32,7 @@ public class ManagedBeanConstants {
     public static final String STATELESS_FQ_NAME = "jakarta.ejb.Stateless";
     public static final String NORMAL_SCOPE_FQ_NAME = "jakarta.enterprise.context.NormalScope";
     public static final String NAMED_FQ_NAME = "jakarta.inject.Named";
+    public static final String SPECIALIZES_FQ_NAME = "jakarta.enterprise.inject.Specializes";
     public static final String DELEGATE_FQ_NAME = "jakarta.decorator.Delegate";
 
     public static final String DIAGNOSTIC_SOURCE = "jakarta-cdi";
@@ -41,6 +42,8 @@ public class ManagedBeanConstants {
     public static final String DIAGNOSTIC_CODE_PRODUCES_INJECT = "RemoveProducesOrInject";
     public static final String DIAGNOSTIC_CODE_STATELESS_ILLEGAL_SCOPE = "InvalidStatelessSessionBeanScope";
     public static final String DIAGNOSTIC_CODE_PRODUCER_FIELD_NAMED = "InvalidProducerFieldWithNamedAnnotation";
+    public static final String DIAGNOSTIC_CODE_INVALID_NAMED_ANNOTATION = "InvalidNamedAnnotationOnNonFieldInjectionPoint";
+    public static final String DIAGNOSTIC_CODE_SPECIALIZED_BEAN_NAMED = "InvalidSpecializedBeanWithNamedAnnotation";
 
     public static final String CONSTRUCTOR_DIAGNOSTIC_CODE = "InvalidManagedBeanConstructor";
 
@@ -52,6 +55,7 @@ public class ManagedBeanConstants {
     public static final String DIAGNOSTIC_CODE_INTERCEPTOR_DECORATOR_OBSERVER = "InvalidInterceptorOrDecoratorWithObserverMethod";
     public static final String DIAGNOSTIC_CODE_INTERCEPTOR_DECORATOR_DISPOSER = "InvalidInterceptorOrDecoratorWithDisposerMethod";
     public static final String DIAGNOSTIC_CODE_INVALID_DECORATOR_DELEGATE = "InvalidDecoratorDelegateInjectionPoints";
+    public static final String DIAGNOSTIC_CODE_INVALID_DELEGATE_INJECTION_POINT = "InvalidDelegateInjectionPoint";
     public static final String DIAGNOSTIC_CODE_DEPENDENT_CONDITIONAL_OBSERVER = "InvalidDependentScopeWithConditionalObserver";
     public static final String DIAGNOSTIC_MULTIPLE_OBSERVER_PARAMS = "InvalidMultipleObserverParams";
     public static final String DIAGNOSTIC_CODE_INTERCEPTOR_DECORATOR_ILLEGAL_SCOPE = "InvalidInterceptorOrDecorator";
@@ -59,6 +63,7 @@ public class ManagedBeanConstants {
     public static final String DIAGNOSTIC_CODE_WILDCARD_INJECT = "InvalidWildcardTypeInInjectField";
     public static final String DIAGNOSTIC_CODE_WILDCARD_PRODUCER_FIELD = "InvalidWildcardTypeInProducerField";
     public static final String DIAGNOSTIC_CODE_WILDCARD_PRODUCER_METHOD = "InvalidWildcardTypeInProducerMethod";
+    public static final String DIAGNOSTIC_CODE_ORPHAN_DISPOSER = "InvalidOrphanDisposerMethod";
     //Added as part of fix that adds two quick fixes which are mutually exclusive issue #540
     public static final String[] INVALID_DISPOSER_FQ_PARAMS = { DISPOSES_FQ_NAME };
     public static final String[] INVALID_DISPOSER_FQ_CONFLICTED_PARAMS = { OBSERVES_FQ_NAME, OBSERVES_ASYNC_FQ_NAME };

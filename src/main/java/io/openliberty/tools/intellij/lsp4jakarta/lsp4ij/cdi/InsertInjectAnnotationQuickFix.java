@@ -12,22 +12,19 @@
  *******************************************************************************/
 package io.openliberty.tools.intellij.lsp4jakarta.lsp4ij.cdi;
 
-import io.openliberty.tools.intellij.lsp4jakarta.lsp4ij.codeAction.proposal.quickfix.RemoveAnnotationConflictQuickFix;
-
-import static io.openliberty.tools.intellij.lsp4jakarta.lsp4ij.cdi.ManagedBeanConstants.SINGLETON_FQ_NAME;
+import io.openliberty.tools.intellij.lsp4jakarta.lsp4ij.codeAction.proposal.quickfix.InsertAnnotationMissingQuickFix;
 
 /**
- * Quick fix to remove @Singleton annotation from a singleton session bean
- * that has invalid scope annotations.
+ * QuickFix for inserting @Inject annotation.
  */
-public class RemoveSingletonAnnotationQuickFix extends RemoveAnnotationConflictQuickFix {
-
-    public RemoveSingletonAnnotationQuickFix() {
-        super(SINGLETON_FQ_NAME);
+public class InsertInjectAnnotationQuickFix extends InsertAnnotationMissingQuickFix {
+    
+    public InsertInjectAnnotationQuickFix() {
+        super(ManagedBeanConstants.INJECT_FQ_NAME);
     }
 
     @Override
     public String getParticipantId() {
-        return RemoveSingletonAnnotationQuickFix.class.getName();
+        return InsertInjectAnnotationQuickFix.class.getName();
     }
 }
