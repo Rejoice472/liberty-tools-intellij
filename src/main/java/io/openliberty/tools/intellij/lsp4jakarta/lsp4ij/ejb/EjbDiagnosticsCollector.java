@@ -168,13 +168,13 @@ public class EjbDiagnosticsCollector extends AbstractDiagnosticsCollector {
         }
 
         // Validate @AfterBegin/@BeforeCompletion: no parameters allowed
-        boolean isNoParamAnnotation = !getMatchedJavaElementNames(type,
+        boolean isSessionSyncNoParamMethod = !getMatchedJavaElementNames(type,
                 Stream.of(method.getAnnotations())
                         .map(PsiAnnotation::getQualifiedName)
                         .toArray(String[]::new),
                 SESSION_SYNC_NO_PARAM_ANNOTATIONS).isEmpty();
 
-        if (isNoParamAnnotation && method.getParameterList().getParametersCount() > 0) {
+        if (isSessionSyncNoParamMethod && method.getParameterList().getParametersCount() > 0) {
             diagnostics.add(createDiagnostic(method, unit,
                     Messages.getMessage("InvalidSessionSyncMethodNoParamAnnotation", annotationNames),
                     DIAGNOSTIC_CODE_INVALID_SESSION_SYNC_NO_PARAM,
