@@ -163,7 +163,7 @@ public class CdiDecoratorDiagnosticsCollector extends AbstractDiagnosticsCollect
             }
             // Primitives are never valid bean types — report immediately without further resolution.
             if (delegateType instanceof PsiPrimitiveType) {
-                reportDecoratorDiagnostic(delegateElement, unit, "InvalidDecoratorDelegateTypeAssignability",
+                reportDecoratorDiagnostic(delegateElement, unit, ManagedBeanConstants.DIAGNOSTIC_CODE_INVALID_DECORATOR_DELEGATE_TYPE_ASSIGNABILITY,
                         delegateType.getPresentableText(), "",
                         ManagedBeanConstants.DIAGNOSTIC_CODE_INVALID_DECORATOR_DELEGATE_TYPE_ASSIGNABILITY,
                         diagnostics);
@@ -181,7 +181,7 @@ public class CdiDecoratorDiagnosticsCollector extends AbstractDiagnosticsCollect
             List<String> decoratedTypes = getDecoratedTypes(decoratorClass);
             if (decoratedTypes.isEmpty()) {
                 // Decorator has no decorated types — definition error per CDI 3.0 §8.1.3
-                reportDecoratorDiagnostic(delegateElement, unit, "InvalidDecoratorWithNoDecoratedTypes",
+                reportDecoratorDiagnostic(delegateElement, unit, ManagedBeanConstants.DIAGNOSTIC_CODE_INVALID_DECORATOR_WITH_NO_DECORATED_TYPES,
                         null, null, ManagedBeanConstants.DIAGNOSTIC_CODE_INVALID_DECORATOR_WITH_NO_DECORATED_TYPES,
                         diagnostics);
                 return;
@@ -189,7 +189,7 @@ public class CdiDecoratorDiagnosticsCollector extends AbstractDiagnosticsCollect
             // Check if delegate type implements/extends all decorated types
             for (String decoratedTypeFQN : decoratedTypes) {
                 if (!InheritanceUtil.isInheritor(delegateClass, decoratedTypeFQN)) {
-                    reportDecoratorDiagnostic(delegateElement, unit, "InvalidDecoratorDelegateTypeAssignability",
+                    reportDecoratorDiagnostic(delegateElement, unit, ManagedBeanConstants.DIAGNOSTIC_CODE_INVALID_DECORATOR_DELEGATE_TYPE_ASSIGNABILITY,
                             delegateClass.getName(), getSimpleName(decoratedTypeFQN),
                             ManagedBeanConstants.DIAGNOSTIC_CODE_INVALID_DECORATOR_DELEGATE_TYPE_ASSIGNABILITY,
                             diagnostics);
