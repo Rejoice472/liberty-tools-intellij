@@ -48,6 +48,10 @@ public class EjbConstants {
             BEFORE_COMPLETION_FQ_NAME
     };
 
+    /* Primitive/wrapper types used in session sync validation */
+    public static final String BOOLEAN_CLASS_FQ_NAME = "java.lang.Boolean";
+    public static final String BOOLEAN_CLASS_NAME = "Boolean";
+
     /* Diagnostic codes */
     public static final String DIAGNOSTIC_SOURCE = "jakarta-ejb";
     public static final String DIAGNOSTIC_CODE_MISSING_MESSAGELISTENER = "ImplementMessageListener";

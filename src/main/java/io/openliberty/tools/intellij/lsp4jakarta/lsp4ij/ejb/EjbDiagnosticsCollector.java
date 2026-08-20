@@ -207,8 +207,8 @@ public class EjbDiagnosticsCollector extends AbstractDiagnosticsCollector {
         }
         PsiType paramType = params[0].getType();
         return paramType.equals(PsiTypes.booleanType())
-                || paramType.equalsToText("java.lang.Boolean")
-                || paramType.equalsToText("Boolean");
+                || paramType.equalsToText(BOOLEAN_CLASS_FQ_NAME)
+                || paramType.equalsToText(BOOLEAN_CLASS_NAME);
     }
 
     /**
