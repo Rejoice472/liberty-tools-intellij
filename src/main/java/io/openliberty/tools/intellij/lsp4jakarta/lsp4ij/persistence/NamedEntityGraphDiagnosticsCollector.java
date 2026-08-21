@@ -22,7 +22,7 @@ import org.eclipse.lsp4j.DiagnosticSeverity;
 
 import java.util.List;
 import java.util.Map;
-import java.util.logging.Logger;
+import java.util.function.Consumer;
 
 /**
  * Diagnostics collector that validates {@code @NamedEntityGraph} usage.
@@ -42,8 +42,6 @@ import java.util.logging.Logger;
  * as a {@link io.openliberty.tools.intellij.lsp4jakarta.lsp4ij.search.NameExtractorStrategy} lambda.
  */
 public class NamedEntityGraphDiagnosticsCollector extends AbstractDiagnosticsCollector {
-
-    private static final Logger LOGGER = Logger.getLogger(NamedEntityGraphDiagnosticsCollector.class.getName());
 
     public NamedEntityGraphDiagnosticsCollector() {
         super();
@@ -74,29 +72,15 @@ public class NamedEntityGraphDiagnosticsCollector extends AbstractDiagnosticsCol
             return;
         }
 
-        long totalStart = System.currentTimeMillis();
-
         // Phase 1: collect all @NamedEntityGraph names project-wide via the scanner.
-        // The extractor lambda is the only @NamedEntityGraph-specific piece of logic;
-        // the scan mechanism itself is generic and reusable by any future diagnostic.
-        long scanStart = System.currentTimeMillis();
-        Map<String, Integer> projectGraphNameCount = ProjectWideNameScanner.scan(
-                unit.getProject(), unit,
+        Map<String, Integer> counts = ProjectWideNameScanner.scan(
+                unit.getProject(),
                 (psiClass, nameCount) -> extractNamesFromClass(psiClass, nameCount));
-        long scanMs = System.currentTimeMillis() - scanStart;
 
         // Phase 2: validate classes in the current file against the collected counts.
-        long validateStart = System.currentTimeMillis();
         for (PsiClass psiClass : unit.getClasses()) {
-            validateClass(psiClass, unit, projectGraphNameCount, diagnostics);
+            validateClass(psiClass, unit, counts, diagnostics);
         }
-        long validateMs = System.currentTimeMillis() - validateStart;
-
-        long totalMs = System.currentTimeMillis() - totalStart;
-        LOGGER.info(String.format(
-                "[NamedEntityGraph] collectDiagnostics: file=%s | scan=%d ms | validate=%d ms | total=%d ms | unique_names=%d | diagnostics=%d",
-                unit.getName(), scanMs, validateMs, totalMs,
-                projectGraphNameCount.size(), diagnostics.size()));
     }
 
     // =========================================================================
@@ -115,14 +99,15 @@ public class NamedEntityGraphDiagnosticsCollector extends AbstractDiagnosticsCol
         for (PsiClass psiClass : unit.getClasses()) {
             boolean hasEntity = false;
             boolean hasGraph = false;
-            for (PsiAnnotation annotation : psiClass.getAnnotations()) {
-                String qualifiedName = annotation.getQualifiedName();
+            for (PsiAnnotation ann : psiClass.getAnnotations()) {
+                String qualifiedName = ann.getQualifiedName();
                 if (qualifiedName == null) {
                     continue;
                 }
                 if (PersistenceConstants.ENTITY.equals(qualifiedName)) {
                     hasEntity = true;
-                } else if (PersistenceConstants.NAMED_ENTITY_GRAPH.equals(qualifiedName)
+                }
+                if (PersistenceConstants.NAMED_ENTITY_GRAPH.equals(qualifiedName)
                         || PersistenceConstants.NAMED_ENTITY_GRAPHS.equals(qualifiedName)) {
                     hasGraph = true;
                 }
@@ -141,42 +126,25 @@ public class NamedEntityGraphDiagnosticsCollector extends AbstractDiagnosticsCol
     /**
      * Inspects class-level annotations and merges any {@code @NamedEntityGraph} names
      * (including those nested inside {@code @NamedEntityGraphs}) into {@code nameCount}.
-     *
-     * <p>This is the only method in this collector that knows about
-     * {@code @NamedEntityGraph}; it is passed as the
-     * {@link io.openliberty.tools.intellij.lsp4jakarta.lsp4ij.search.NameExtractorStrategy}
-     * lambda to {@link ProjectWideNameScanner#scan}.
      */
     private void extractNamesFromClass(PsiClass psiClass, Map<String, Integer> nameCount) {
-        for (PsiAnnotation annotation : psiClass.getAnnotations()) {
-            String qualifiedName = annotation.getQualifiedName();
+        for (PsiAnnotation ann : psiClass.getAnnotations()) {
+            String qualifiedName = ann.getQualifiedName();
             if (qualifiedName == null) {
                 continue;
             }
-
             if (PersistenceConstants.NAMED_ENTITY_GRAPH.equals(qualifiedName)) {
-                String name = getNameAttribute(annotation);
+                String name = getNameAttribute(ann);
                 if (name != null) {
                     nameCount.merge(name, 1, Integer::sum);
                 }
-
             } else if (PersistenceConstants.NAMED_ENTITY_GRAPHS.equals(qualifiedName)) {
-                PsiAnnotationMemberValue value = annotation.findAttributeValue("value");
-                if (value instanceof PsiArrayInitializerMemberValue) {
-                    for (PsiAnnotationMemberValue item : ((PsiArrayInitializerMemberValue) value).getInitializers()) {
-                        if (item instanceof PsiAnnotation) {
-                            String name = getNameAttribute((PsiAnnotation) item);
-                            if (name != null) {
-                                nameCount.merge(name, 1, Integer::sum);
-                            }
-                        }
-                    }
-                } else if (value instanceof PsiAnnotation) {
-                    String name = getNameAttribute((PsiAnnotation) value);
+                forEachNestedGraph(ann, inner -> {
+                    String name = getNameAttribute(inner);
                     if (name != null) {
                         nameCount.merge(name, 1, Integer::sum);
                     }
-                }
+                });
             }
         }
     }
@@ -191,47 +159,56 @@ public class NamedEntityGraphDiagnosticsCollector extends AbstractDiagnosticsCol
      * once in the project-wide count map.
      */
     private void validateClass(PsiClass psiClass, PsiJavaFile unit,
-                               Map<String, Integer> projectGraphNameCount,
-                               List<Diagnostic> diagnostics) {
-        for (PsiAnnotation annotation : psiClass.getAnnotations()) {
-            String qualifiedName = annotation.getQualifiedName();
+                               Map<String, Integer> counts, List<Diagnostic> diagnostics) {
+        for (PsiAnnotation ann : psiClass.getAnnotations()) {
+            String qualifiedName = ann.getQualifiedName();
             if (qualifiedName == null) {
                 continue;
             }
-
             if (PersistenceConstants.NAMED_ENTITY_GRAPH.equals(qualifiedName)) {
-                checkGraphAnnotation(annotation, unit, projectGraphNameCount, diagnostics);
-
+                checkForDuplicate(ann, unit, counts, diagnostics);
             } else if (PersistenceConstants.NAMED_ENTITY_GRAPHS.equals(qualifiedName)) {
-                PsiAnnotationMemberValue value = annotation.findAttributeValue("value");
-                if (value instanceof PsiArrayInitializerMemberValue) {
-                    for (PsiAnnotationMemberValue item : ((PsiArrayInitializerMemberValue) value).getInitializers()) {
-                        if (item instanceof PsiAnnotation) {
-                            checkGraphAnnotation((PsiAnnotation) item, unit, projectGraphNameCount, diagnostics);
-                        }
-                    }
-                } else if (value instanceof PsiAnnotation) {
-                    checkGraphAnnotation((PsiAnnotation) value, unit, projectGraphNameCount, diagnostics);
-                }
+                forEachNestedGraph(ann, inner -> checkForDuplicate(inner, unit, counts, diagnostics));
             }
         }
     }
 
-    private void checkGraphAnnotation(PsiAnnotation annotation, PsiJavaFile unit,
-                                      Map<String, Integer> projectGraphNameCount,
-                                      List<Diagnostic> diagnostics) {
-        String graphName = getNameAttribute(annotation);
+    private void checkForDuplicate(PsiAnnotation ann, PsiJavaFile unit,
+                                   Map<String, Integer> counts, List<Diagnostic> diagnostics) {
+        String graphName = getNameAttribute(ann);
         if (graphName == null) {
             return;
         }
-        Integer count = projectGraphNameCount.get(graphName);
-        if (count != null && count > 1) {
+        if (counts.getOrDefault(graphName, 0) > 1) {
             diagnostics.add(createDiagnostic(
-                    annotation, unit,
+                    ann, unit,
                     Messages.getMessage("DuplicateNamedEntityGraphName", graphName),
                     PersistenceConstants.DIAGNOSTIC_CODE_DUPLICATE_NAMED_ENTITY_GRAPH,
                     null,
                     DiagnosticSeverity.Error));
+        }
+    }
+
+    // =========================================================================
+    // Helpers
+    // =========================================================================
+
+    /**
+     * Iterates every {@code @NamedEntityGraph} nested inside the given
+     * {@code @NamedEntityGraphs} container annotation and passes each to
+     * {@code consumer}.  Handles both array form ({@code @NamedEntityGraphs({a, b})})
+     * and single-element form ({@code @NamedEntityGraphs(a)}).
+     */
+    private void forEachNestedGraph(PsiAnnotation container, Consumer<PsiAnnotation> consumer) {
+        PsiAnnotationMemberValue value = container.findAttributeValue("value");
+        if (value instanceof PsiArrayInitializerMemberValue) {
+            for (PsiAnnotationMemberValue item : ((PsiArrayInitializerMemberValue) value).getInitializers()) {
+                if (item instanceof PsiAnnotation) {
+                    consumer.accept((PsiAnnotation) item);
+                }
+            }
+        } else if (value instanceof PsiAnnotation) {
+            consumer.accept((PsiAnnotation) value);
         }
     }
 

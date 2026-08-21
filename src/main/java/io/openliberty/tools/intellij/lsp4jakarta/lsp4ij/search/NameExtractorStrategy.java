@@ -56,7 +56,7 @@ public interface NameExtractorStrategy {
     /**
      * Inspect {@code psiClass} and merge any names of interest into {@code nameCount}.
      *
-     * @param psiClass  the class currently being visited by the active {@link ScanBackend}
+     * @param psiClass  the class currently being visited by {@link ProjectWideNameScanner}
      * @param nameCount mutable map; use {@code nameCount.merge(name, 1, Integer::sum)}
      */
     void extract(PsiClass psiClass, Map<String, Integer> nameCount);
