@@ -17,6 +17,7 @@ import io.openliberty.tools.intellij.lsp4jakarta.lsp4ij.AbstractDiagnosticsColle
 import io.openliberty.tools.intellij.lsp4jakarta.lsp4ij.Messages;
 import io.openliberty.tools.intellij.lsp4jakarta.lsp4ij.search.JakartaSearchSettings;
 import io.openliberty.tools.intellij.lsp4jakarta.lsp4ij.search.ProjectWideNameScanner;
+import io.openliberty.tools.intellij.lsp4mp4ij.psi.core.utils.AnnotationUtils;
 import org.eclipse.lsp4j.Diagnostic;
 import org.eclipse.lsp4j.DiagnosticSeverity;
 
@@ -134,13 +135,13 @@ public class NamedEntityGraphDiagnosticsCollector extends AbstractDiagnosticsCol
                 continue;
             }
             if (PersistenceConstants.NAMED_ENTITY_GRAPH.equals(qualifiedName)) {
-                String name = getNameAttribute(ann);
+                String name = AnnotationUtils.getAnnotationMemberValue(ann, "name");
                 if (name != null) {
                     nameCount.merge(name, 1, Integer::sum);
                 }
             } else if (PersistenceConstants.NAMED_ENTITY_GRAPHS.equals(qualifiedName)) {
                 forEachNestedGraph(ann, inner -> {
-                    String name = getNameAttribute(inner);
+                    String name = AnnotationUtils.getAnnotationMemberValue(inner, "name");
                     if (name != null) {
                         nameCount.merge(name, 1, Integer::sum);
                     }
@@ -175,7 +176,7 @@ public class NamedEntityGraphDiagnosticsCollector extends AbstractDiagnosticsCol
 
     private void checkForDuplicate(PsiAnnotation ann, PsiJavaFile unit,
                                    Map<String, Integer> counts, List<Diagnostic> diagnostics) {
-        String graphName = getNameAttribute(ann);
+        String graphName = AnnotationUtils.getAnnotationMemberValue(ann, "name");
         if (graphName == null) {
             return;
         }
@@ -212,14 +213,4 @@ public class NamedEntityGraphDiagnosticsCollector extends AbstractDiagnosticsCol
         }
     }
 
-    private String getNameAttribute(PsiAnnotation annotation) {
-        PsiAnnotationMemberValue nameValue = annotation.findAttributeValue("name");
-        if (nameValue instanceof PsiLiteralExpression) {
-            Object value = ((PsiLiteralExpression) nameValue).getValue();
-            if (value instanceof String) {
-                return (String) value;
-            }
-        }
-        return null;
-    }
 }
