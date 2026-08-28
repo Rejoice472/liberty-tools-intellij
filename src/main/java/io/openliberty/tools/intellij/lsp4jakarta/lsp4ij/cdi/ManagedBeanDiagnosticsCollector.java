@@ -389,28 +389,27 @@ public class ManagedBeanDiagnosticsCollector extends AbstractDiagnosticsCollecto
                      */
                     diagnostics.add(createDiagnostic(type, unit,
                             Messages.getMessage("StatelessSessionBeanWithIllegalScope"),
-                            DIAGNOSTIC_CODE_STATELESS_ILLEGAL_SCOPE, null, DiagnosticSeverity.Error));
+                            DIAGNOSTIC_CODE_INVALID_STATELESS_SCOPE, null, DiagnosticSeverity.Error));
                 } else if (hasMultipleScopes) {
                     diagnostics.add(createDiagnostic(type, unit,
                             Messages.getMessage("ScopeTypeAnnotationsManagedBean"),
                             DIAGNOSTIC_CODE_SCOPEDECL, new Gson().toJsonTree(managedBeanAnnotations),
                             DiagnosticSeverity.Error));
                 }
-            }
-
-            // A @Singleton or @Stateless class with no declared scope may still inherit an invalid
-            // scope from a superclass via @Inherited CDI scope annotations. Check these cases
-            // independently of isManagedBean because isManagedBean is false when no scope is
-            // declared directly on the class.
-            if (isSingleton && !isManagedBean) {
-                validateSessionBeanInheritedScope(unit, diagnostics, type,
-                        new String[]{APPLICATION_SCOPED_FQ_NAME, DEPENDENT_FQ_NAME},
-                        "SingletonSessionBeanInvalidScope", DIAGNOSTIC_CODE_INVALID_SINGLETON_SCOPE);
-            }
-            if (isStateless && !isManagedBean) {
-                validateSessionBeanInheritedScope(unit, diagnostics, type,
-                        new String[]{DEPENDENT_FQ_NAME},
-                        "StatelessSessionBeanWithIllegalScope", DIAGNOSTIC_CODE_STATELESS_ILLEGAL_SCOPE);
+            } else {
+                // A @Singleton or @Stateless class with no declared scope may still inherit an invalid
+                // scope from a superclass via @Inherited CDI scope annotations. Check these cases
+                // when isManagedBean is false (no scope declared directly on the class).
+                if (isSingleton) {
+                    validateSessionBeanInheritedScope(unit, diagnostics, type,
+                            new String[]{APPLICATION_SCOPED_FQ_NAME, DEPENDENT_FQ_NAME},
+                            "SingletonSessionBeanInvalidScope", DIAGNOSTIC_CODE_INVALID_SINGLETON_SCOPE);
+                }
+                if (isStateless) {
+                    validateSessionBeanInheritedScope(unit, diagnostics, type,
+                            new String[]{DEPENDENT_FQ_NAME},
+                            "StatelessSessionBeanWithIllegalScope", DIAGNOSTIC_CODE_INVALID_STATELESS_SCOPE);
+                }
             }
 
             /*
