@@ -66,6 +66,20 @@ public class CdiDecoratorDiagnosticsCollector extends AbstractDiagnosticsCollect
         for (PsiMethod method : type.getMethods()) {
             PsiAnnotation[] methodAnnotations = method.getAnnotations();
 
+            // Per CDI spec §3.7 / §8.1.2, @Delegate is only valid on injection points:
+            // fields, bean constructor parameters, or initializer method parameters.
+            // An initializer method is a non-constructor, non-static, void method
+            // annotated with @Inject.  Skip parameters of any other kind of method —
+            // they are not injection points.
+            boolean isConstructor = isConstructorMethod(method);
+            boolean isInitializerMethod = !isConstructor
+                    && !method.hasModifierProperty(PsiModifier.STATIC)
+                    && PsiTypes.voidType().equals(method.getReturnType())
+                    && isMatchedAnnotation(methodAnnotations, ManagedBeanConstants.INJECT_FQ_NAME);
+            if (!isConstructor && !isInitializerMethod) {
+                continue;
+            }
+
             for (PsiParameter parameter : method.getParameterList().getParameters()) {
                 validateDelegate(type, unit, diagnostics, method, parameter, delegateElements, methodAnnotations);
             }
