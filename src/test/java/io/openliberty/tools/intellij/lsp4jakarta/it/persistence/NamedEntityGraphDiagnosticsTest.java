@@ -24,7 +24,6 @@ import io.openliberty.tools.intellij.lsp4jakarta.lsp4ij.search.JakartaSearchSett
 import org.eclipse.lsp4j.Diagnostic;
 import org.eclipse.lsp4j.DiagnosticSeverity;
 import org.eclipse.lsp4jakarta.commons.JakartaJavaDiagnosticsParams;
-import org.junit.After;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
@@ -44,9 +43,13 @@ import static io.openliberty.tools.intellij.lsp4jakarta.it.core.JakartaForJavaAs
 @RunWith(JUnit4.class)
 public class NamedEntityGraphDiagnosticsTest extends BaseJakartaTest {
 
-    @After
+    @Override
     public void tearDown() throws Exception {
-        JakartaSearchSettings.setSearchEngineDiagnosticsEnabled(true);
+        try {
+            JakartaSearchSettings.setSearchEngineDiagnosticsEnabled(true);
+        } finally {
+            super.tearDown();
+        }
     }
 
     /**
@@ -65,7 +68,7 @@ public class NamedEntityGraphDiagnosticsTest extends BaseJakartaTest {
         IPsiUtils utils = PsiUtilsLSImpl.getInstance(getProject());
 
         VirtualFile javaFile = LocalFileSystem.getInstance().refreshAndFindFileByPath(ModuleUtilCore.getModuleDirPath(module)
-                + "/src/main/java/io/openliberty/sample/jakarta/persistence/NamedEntityGraphDuplicate1.java");
+                + "/src/main/java/io/openliberty/sample/jakarta/persistence/entitygraph/NamedEntityGraphDuplicate1.java");
         String uri = VfsUtilCore.virtualToIoFile(javaFile).toURI().toString();
 
         JakartaJavaDiagnosticsParams diagnosticsParams = new JakartaJavaDiagnosticsParams();
@@ -92,7 +95,7 @@ public class NamedEntityGraphDiagnosticsTest extends BaseJakartaTest {
         IPsiUtils utils = PsiUtilsLSImpl.getInstance(getProject());
 
         VirtualFile javaFile = LocalFileSystem.getInstance().refreshAndFindFileByPath(ModuleUtilCore.getModuleDirPath(module)
-                + "/src/main/java/io/openliberty/sample/jakarta/persistence/NamedEntityGraphDuplicate2.java");
+                + "/src/main/java/io/openliberty/sample/jakarta/persistence/entitygraph/NamedEntityGraphDuplicate2.java");
         String uri = VfsUtilCore.virtualToIoFile(javaFile).toURI().toString();
 
         JakartaJavaDiagnosticsParams diagnosticsParams = new JakartaJavaDiagnosticsParams();
@@ -119,7 +122,7 @@ public class NamedEntityGraphDiagnosticsTest extends BaseJakartaTest {
         IPsiUtils utils = PsiUtilsLSImpl.getInstance(getProject());
 
         VirtualFile javaFile = LocalFileSystem.getInstance().refreshAndFindFileByPath(ModuleUtilCore.getModuleDirPath(module)
-                + "/src/main/java/io/openliberty/sample/jakarta/persistence/NamedEntityGraphUnique.java");
+                + "/src/main/java/io/openliberty/sample/jakarta/persistence/entitygraph/NamedEntityGraphUnique.java");
         String uri = VfsUtilCore.virtualToIoFile(javaFile).toURI().toString();
 
         JakartaJavaDiagnosticsParams diagnosticsParams = new JakartaJavaDiagnosticsParams();
@@ -204,7 +207,7 @@ public class NamedEntityGraphDiagnosticsTest extends BaseJakartaTest {
         IPsiUtils utils = PsiUtilsLSImpl.getInstance(getProject());
 
         VirtualFile javaFile = LocalFileSystem.getInstance().refreshAndFindFileByPath(ModuleUtilCore.getModuleDirPath(module)
-                + "/src/main/java/io/openliberty/sample/jakarta/persistence/NamedEntityGraphsContainerDuplicate.java");
+                + "/src/main/java/io/openliberty/sample/jakarta/persistence/entitygraph/NamedEntityGraphsContainerDuplicate.java");
         String uri = VfsUtilCore.virtualToIoFile(javaFile).toURI().toString();
 
         JakartaJavaDiagnosticsParams diagnosticsParams = new JakartaJavaDiagnosticsParams();
@@ -231,7 +234,7 @@ public class NamedEntityGraphDiagnosticsTest extends BaseJakartaTest {
         IPsiUtils utils = PsiUtilsLSImpl.getInstance(getProject());
 
         VirtualFile javaFile = LocalFileSystem.getInstance().refreshAndFindFileByPath(ModuleUtilCore.getModuleDirPath(module)
-                + "/src/main/java/io/openliberty/sample/jakarta/persistence/NamedEntityGraphsContainerUnique.java");
+                + "/src/main/java/io/openliberty/sample/jakarta/persistence/entitygraph/NamedEntityGraphsContainerUnique.java");
         String uri = VfsUtilCore.virtualToIoFile(javaFile).toURI().toString();
 
         JakartaJavaDiagnosticsParams diagnosticsParams = new JakartaJavaDiagnosticsParams();
@@ -258,7 +261,7 @@ public class NamedEntityGraphDiagnosticsTest extends BaseJakartaTest {
         IPsiUtils utils = PsiUtilsLSImpl.getInstance(getProject());
 
         VirtualFile javaFile = LocalFileSystem.getInstance().refreshAndFindFileByPath(ModuleUtilCore.getModuleDirPath(module)
-                + "/src/main/java/io/openliberty/sample/jakarta/persistence/NamedEntityGraphsSelfDuplicate.java");
+                + "/src/main/java/io/openliberty/sample/jakarta/persistence/entitygraph/NamedEntityGraphsSelfDuplicate.java");
         String uri = VfsUtilCore.virtualToIoFile(javaFile).toURI().toString();
 
         JakartaJavaDiagnosticsParams diagnosticsParams = new JakartaJavaDiagnosticsParams();
@@ -275,6 +278,116 @@ public class NamedEntityGraphDiagnosticsTest extends BaseJakartaTest {
         assertJavaDiagnostics(diagnosticsParams, utils, firstSelfDuplicateDiag, secondSelfDuplicateDiag);
     }
 
+    // -------------------------------------------------------------------------
+    // Attribute node existence validation
+    // -------------------------------------------------------------------------
+
+    /**
+     * An entity with an invalid attribute in {@code @NamedAttributeNode} must produce
+     * a diagnostic.
+     *
+     * <p>The attribute node {@code @NamedAttributeNode("nonExistentField")} is at
+     * 0-based line 13, cols 8–47 in the test resource file.
+     *
+     * Spec §3.7.4:
+     * https://jakarta.ee/specifications/persistence/3.0/jakarta-persistence-spec-3.0.html#a13662
+     */
+    @Test
+    public void invalidAttributeNodeReferenced() throws Exception {
+        Module module = createMavenModule(new File("src/test/resources/projects/maven/jakarta-sample"));
+        IPsiUtils utils = PsiUtilsLSImpl.getInstance(getProject());
+
+        VirtualFile javaFile = LocalFileSystem.getInstance().refreshAndFindFileByPath(ModuleUtilCore.getModuleDirPath(module)
+                + "/src/main/java/io/openliberty/sample/jakarta/persistence/entitygraph/NamedEntityGraphInvalidAttribute.java");
+        String uri = VfsUtilCore.virtualToIoFile(javaFile).toURI().toString();
+
+        JakartaJavaDiagnosticsParams diagnosticsParams = new JakartaJavaDiagnosticsParams();
+        diagnosticsParams.setUris(Arrays.asList(uri));
+
+        // @NamedAttributeNode("nonExistentField") at 0-based line 12, cols 8-47
+        Diagnostic invalidAttrDiag = d(12, 8, 47,
+                "Attribute 'nonExistentField' does not exist on entity 'NamedEntityGraphInvalidAttribute'.",
+                DiagnosticSeverity.Error, "jakarta-persistence", "NamedAttributeNodeAttributeNotFound");
+
+        assertJavaDiagnostics(diagnosticsParams, utils, invalidAttrDiag);
+    }
+
+    /**
+     * An entity where all attribute nodes refer to existing fields/properties
+     * must produce no diagnostics.
+     *
+     * Spec §3.7.4:
+     * https://jakarta.ee/specifications/persistence/3.0/jakarta-persistence-spec-3.0.html#a13662
+     */
+    @Test
+    public void validAttributeNodesNoDiagnostic() throws Exception {
+        Module module = createMavenModule(new File("src/test/resources/projects/maven/jakarta-sample"));
+        IPsiUtils utils = PsiUtilsLSImpl.getInstance(getProject());
+
+        VirtualFile javaFile = LocalFileSystem.getInstance().refreshAndFindFileByPath(ModuleUtilCore.getModuleDirPath(module)
+                + "/src/main/java/io/openliberty/sample/jakarta/persistence/entitygraph/NamedEntityGraphValid.java");
+        String uri = VfsUtilCore.virtualToIoFile(javaFile).toURI().toString();
+
+        JakartaJavaDiagnosticsParams diagnosticsParams = new JakartaJavaDiagnosticsParams();
+        diagnosticsParams.setUris(Arrays.asList(uri));
+
+        assertJavaDiagnostics(diagnosticsParams, utils);
+    }
+
+    /**
+     * An entity referencing fields from the entity itself and from a superclass
+     * must produce no diagnostics (field-based access only).
+     *
+     * Spec §3.7.4:
+     * https://jakarta.ee/specifications/persistence/3.0/jakarta-persistence-spec-3.0.html#a13662
+     */
+    @Test
+    public void validSuperclassAndMethodProperties() throws Exception {
+        Module module = createMavenModule(new File("src/test/resources/projects/maven/jakarta-sample"));
+        IPsiUtils utils = PsiUtilsLSImpl.getInstance(getProject());
+
+        VirtualFile javaFile = LocalFileSystem.getInstance().refreshAndFindFileByPath(ModuleUtilCore.getModuleDirPath(module)
+                + "/src/main/java/io/openliberty/sample/jakarta/persistence/entitygraph/NamedEntityGraphSubclassValid.java");
+        String uri = VfsUtilCore.virtualToIoFile(javaFile).toURI().toString();
+
+        JakartaJavaDiagnosticsParams diagnosticsParams = new JakartaJavaDiagnosticsParams();
+        diagnosticsParams.setUris(Arrays.asList(uri));
+
+        assertJavaDiagnostics(diagnosticsParams, utils);
+    }
+
+    /**
+     * An entity referencing non-existent field names (including names that happen to
+     * match getter methods but have no backing field) must produce
+     * {@code NamedAttributeNodeAttributeNotFound} diagnostics.
+     *
+     * Spec §3.7.4:
+     * https://jakarta.ee/specifications/persistence/3.0/jakarta-persistence-spec-3.0.html#a13662
+     */
+    @Test
+    public void invalidSuperclassAndMethodProperties() throws Exception {
+        Module module = createMavenModule(new File("src/test/resources/projects/maven/jakarta-sample"));
+        IPsiUtils utils = PsiUtilsLSImpl.getInstance(getProject());
+
+        VirtualFile javaFile = LocalFileSystem.getInstance().refreshAndFindFileByPath(ModuleUtilCore.getModuleDirPath(module)
+                + "/src/main/java/io/openliberty/sample/jakarta/persistence/entitygraph/NamedEntityGraphSubclassInvalid.java");
+        String uri = VfsUtilCore.virtualToIoFile(javaFile).toURI().toString();
+
+        JakartaJavaDiagnosticsParams diagnosticsParams = new JakartaJavaDiagnosticsParams();
+        diagnosticsParams.setUris(Arrays.asList(uri));
+
+        // @NamedAttributeNode("invalidSuperField") at 0-based line 11, cols 8-48
+        Diagnostic invalidSuperFieldDiag = d(11, 8, 48,
+                "Attribute 'invalidSuperField' does not exist on entity 'NamedEntityGraphSubclassInvalid'.",
+                DiagnosticSeverity.Error, "jakarta-persistence", "NamedAttributeNodeAttributeNotFound");
+        // @NamedAttributeNode("invalidMethodProperty") at 0-based line 12, cols 8-52
+        Diagnostic invalidMethodPropDiag = d(12, 8, 52,
+                "Attribute 'invalidMethodProperty' does not exist on entity 'NamedEntityGraphSubclassInvalid'.",
+                DiagnosticSeverity.Error, "jakarta-persistence", "NamedAttributeNodeAttributeNotFound");
+
+        assertJavaDiagnostics(diagnosticsParams, utils, invalidSuperFieldDiag, invalidMethodPropDiag);
+    }
+
     /**
      * When {@link JakartaSearchSettings#setSearchEngineDiagnosticsEnabled(boolean)} is {@code false},
      * the project-wide scan is disabled and no diagnostics must be produced, even for a file
@@ -289,7 +402,7 @@ public class NamedEntityGraphDiagnosticsTest extends BaseJakartaTest {
             IPsiUtils utils = PsiUtilsLSImpl.getInstance(getProject());
 
             VirtualFile javaFile = LocalFileSystem.getInstance().refreshAndFindFileByPath(ModuleUtilCore.getModuleDirPath(module)
-                    + "/src/main/java/io/openliberty/sample/jakarta/persistence/NamedEntityGraphDuplicate1.java");
+                    + "/src/main/java/io/openliberty/sample/jakarta/persistence/entitygraph/NamedEntityGraphDuplicate1.java");
             String uri = VfsUtilCore.virtualToIoFile(javaFile).toURI().toString();
 
             JakartaJavaDiagnosticsParams diagnosticsParams = new JakartaJavaDiagnosticsParams();
