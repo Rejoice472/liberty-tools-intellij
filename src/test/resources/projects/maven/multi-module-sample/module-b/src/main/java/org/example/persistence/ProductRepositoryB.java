@@ -10,43 +10,43 @@ import jakarta.persistence.TypedQuery;
 import java.util.List;
 
 /**
- * Sample EJB using:
+ * Sample EJB for Module B using:
  *  - Jakarta Persistence 3.1  (EE 10)
  *  - Jakarta Annotation 2.1   (EE 10)
  *  - Jakarta EJB 4.0          (EE 10)
  */
 @Stateless
-public class ProductRepository {
+public class ProductRepositoryB {
 
     @PersistenceContext(unitName = "samplePU")
     private EntityManager entityManager;
 
     @PostConstruct
     public void init() {
-        System.out.println("ProductRepository initialized.");
+        System.out.println("ProductRepositoryB initialized.");
     }
 
     @PreDestroy
     public void destroy() {
-        System.out.println("ProductRepository destroyed.");
+        System.out.println("ProductRepositoryB destroyed.");
     }
 
-    public void save(Product product) {
+    public void save(ProductB product) {
         entityManager.persist(product);
     }
 
-    public Product findById(Long id) {
-        return entityManager.find(Product.class, id);
+    public ProductB findById(Long id) {
+        return entityManager.find(ProductB.class, id);
     }
 
-    public List<Product> findAll() {
-        TypedQuery<Product> query = entityManager.createQuery(
-                "SELECT p FROM Product p", Product.class);
+    public List<ProductB> findAll() {
+        TypedQuery<ProductB> query = entityManager.createQuery(
+                "SELECT p FROM ProductB p", ProductB.class);
         return query.getResultList();
     }
 
     public void delete(Long id) {
-        Product product = findById(id);
+        ProductB product = findById(id);
         if (product != null) {
             entityManager.remove(product);
         }

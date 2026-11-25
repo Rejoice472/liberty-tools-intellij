@@ -13,36 +13,36 @@ import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 
-import org.example.persistence.Product;
-import org.example.persistence.ProductRepository;
+import org.example.persistence.ProductB;
+import org.example.persistence.ProductRepositoryB;
 
 import java.util.List;
 
 /**
- * Sample REST resource using:
+ * Sample REST resource for Module B using:
  *  - Jakarta REST (JAX-RS) 4.0  (EE 11)
  *  - Jakarta CDI 4.1            (EE 11)
  *  - Jakarta Bean Validation 3.1 (EE 11)
  *  - Jakarta Inject 2.0         (EE 9)
  */
-@Path("/products")
+@Path("/products-b")
 @ApplicationScoped
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
-public class ProductResource {
+public class ProductResourceB {
 
     @Inject
-    private ProductRepository productRepository;
+    private ProductRepositoryB productRepository;
 
     @GET
-    public List<Product> getAllProducts() {
+    public List<ProductB> getAllProducts() {
         return productRepository.findAll();
     }
 
     @GET
     @Path("/{id}")
     public Response getProduct(@PathParam("id") Long id) {
-        Product product = productRepository.findById(id);
+        ProductB product = productRepository.findById(id);
         if (product == null) {
             return Response.status(Response.Status.NOT_FOUND).build();
         }
@@ -50,7 +50,7 @@ public class ProductResource {
     }
 
     @POST
-    public Response createProduct(@Valid Product product) {
+    public Response createProduct(@Valid ProductB product) {
         productRepository.save(product);
         return Response.status(Response.Status.CREATED).entity(product).build();
     }

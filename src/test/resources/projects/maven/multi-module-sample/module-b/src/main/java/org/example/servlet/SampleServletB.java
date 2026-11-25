@@ -11,15 +11,15 @@ import java.io.IOException;
 import java.io.PrintWriter;
 
 /**
- * Sample Servlet using:
+ * Sample Servlet for Module B using:
  *  - Jakarta Servlet 5.0  (EE 9)
  *  - Jakarta Inject 2.0   (EE 9)
  */
-@WebServlet("/hello")
-public class SampleServlet extends HttpServlet {
+@WebServlet("/hello-b")
+public class SampleServletB extends HttpServlet {
 
     @Inject
-    private GreetingService greetingService;
+    private GreetingServiceB greetingService;
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp)

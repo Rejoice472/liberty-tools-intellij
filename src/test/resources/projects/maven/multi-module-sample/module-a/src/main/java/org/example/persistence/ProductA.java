@@ -11,13 +11,13 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
 /**
- * Sample JPA Entity using:
+ * Sample JPA Entity for Module A using:
  *  - Jakarta Persistence 3.1     (EE 10)
  *  - Jakarta Bean Validation 3.1 (EE 11)
  */
 @Entity
-@Table(name = "products")
-public class Product {
+@Table(name = "products_a")
+public class ProductA {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -32,9 +32,9 @@ public class Product {
     @Column(name = "price", nullable = false)
     private Double price;
 
-    public Product() {}
+    public ProductA() {}
 
-    public Product(String name, Double price) {
+    public ProductA(String name, Double price) {
         this.name = name;
         this.price = price;
     }
